@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1828">
+<meta name="investor101-version" content="dev">
+<title>investor101</title>
+<link rel="icon" href="marca.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="barra">
+  <a class="marca" href="#/" aria-label="investor101, inicio">investor<b>101</b></a>
+  <span class="empresa" id="empresa"></span>
+  <nav class="menu" id="menu" aria-label="Secciones"></nav>
+  <div class="cuenta">
+    <button class="quien" id="b-cuenta" aria-haspopup="true" aria-expanded="false"></button>
+    <div class="cuenta-menu" id="cuenta-menu" hidden></div>
+  </div>
+</header>
+<main id="vista" tabindex="-1"><p class="cargando">Cargando…</p></main>
+<nav class="pestanas" id="pestanas" aria-label="Secciones" hidden></nav>
+<div class="avisos" id="avisos" aria-live="polite"></div>
+<script src="js/nucleo.js"></script>
+<script src="js/piezas.js"></script>
+<script src="js/pagare.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/inversionista.js"></script>
+<script src="js/arranque.js"></script>
+</body>
+</html>

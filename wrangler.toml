@@ -1,0 +1,53 @@
+# investor101 como Worker de Cloudflare. Mismo patrón que cost101 y master101
+# (D1 y D2). Dos Workers con el mismo código: `investor101-staging` (API de
+# staging) e `investor101` (producción, en investor101.taller101.com).
+# Las llaves no están aquí: publica el corredor con los secretos de Actions.
+
+name = "investor101"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+
+# `workers_dev = true` va junto a `routes`: sin él wrangler apaga workers.dev.
+workers_dev = true
+routes = [
+  { pattern = "investor101.taller101.com", custom_domain = true }
+]
+
+[vars]
+DOMINIO_PROPIO = "investor101.taller101.com"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "404-page"
+# Las rutas se sirven tal cual: sin esto la plataforma manda /entrar.html a
+# /entrar y el candado lo regresa (le pasó a quote101).
+html_handling = "none"
+# Todo pasa por el Worker: es quien pide la sesión antes de entregar la app.
+run_worker_first = true
+
+[[services]]
+binding = "API"
+service = "suite101-api"
+
+[observability]
+enabled = true
+
+# ─────────────── staging ───────────────
+[env.staging]
+name = "investor101-staging"
+routes = []
+
+[env.staging.assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "404-page"
+html_handling = "none"
+run_worker_first = true
+
+[[env.staging.services]]
+binding = "API"
+service = "suite101-api-staging"
+
+[env.staging.observability]
+enabled = true
