@@ -1,4 +1,4 @@
-/* investor101 — el pagaré en PDF.
+/* patron101 — el pagaré en PDF.
  *
  * Mike, con botones: «PDF automático: la plataforma genera el pagaré con
  * monto, tasa, fechas y tabla de pagos. Se firma fuera (a mano) y se sube

@@ -1,4 +1,9 @@
-# Continuar — investor101
+# Continuar — patron101 (por dentro, investor101)
+
+**El nombre (Mike, 8-oct, 14:43):** «esta plataforma se va a llamar
+patron101». Marca y dominio: patron101. Repo, Worker, `X-App` y llave
+`investor`: se quedan como nacieron (OPERAR.md §8). El dominio viejo,
+investor101.taller101.com, redirige al nuevo.
 
 Estado al **8-oct-2026**. Lo escribe el chat de Cowork que construyó la app
 el mismo día en que Mike la pidió.

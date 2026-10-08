@@ -13,7 +13,7 @@
 # La prueba de pantalla da de alta una empresa `i101-…` en la API que tenga
 # enfrente y la borra al terminar; por eso sólo corre en local y en staging.
 
-name: Publicar investor101
+name: Publicar patron101
 
 on:
   push:
@@ -132,7 +132,7 @@ jobs:
         run: |
           set -euo pipefail
           npx wrangler deploy | tee /tmp/prod.txt
-          echo "url=https://investor101.taller101.com" >> "$GITHUB_OUTPUT"
+          echo "url=https://patron101.taller101.com" >> "$GITHUB_OUTPUT"
 
       - name: Medir producción
         env:

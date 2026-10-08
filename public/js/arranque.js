@@ -1,4 +1,4 @@
-/* investor101 — el arranque: quién soy aquí, en qué empresa, y qué vista toca.
+/* patron101 — el arranque: quién soy aquí, en qué empresa, y qué vista toca.
  *
  * La API dice el papel (`admin` o `inversionista`) al pedir la portada de una
  * empresa; aquí no se adivina. Lo único que se busca es CUÁL empresa: quien
@@ -118,18 +118,18 @@
         const d = await I101.api(`/orgs/${encodeURIComponent(cand.id)}/inversion`);
         abren.push({ id: cand.id, nombre: d.empresa.nombre });
         if (!portada) { portada = d; I101.org = cand.id; }
-      } catch { /* esa empresa no trae investor101, o no le toca */ }
+      } catch { /* esa empresa no trae patron101, o no le toca */ }
     }
     if (!portada) {
       vista.innerHTML = `<section class="tarjeta"><h2>Todavía no hay nada que ver</h2>
-        <p style="margin:0 0 12px">Entraste como ${h(yo.usuario?.correo || '')}, pero ese correo no está dado de alta como inversionista ni dirige una empresa con investor101. Si te llegó una invitación, revisa que sea este mismo correo.</p>
+        <p style="margin:0 0 12px">Entraste como ${h(yo.usuario?.correo || '')}, pero ese correo no está dado de alta como inversionista ni dirige una empresa con patron101. Si te llegó una invitación, revisa que sea este mismo correo.</p>
         <button class="b" id="b-salir-vacio">Usar otro correo</button></section>`;
       document.getElementById('b-salir-vacio').onclick = async () => { try { await I101.api('/auth/salir', { metodo: 'POST' }); } catch { /* da igual */ } location.replace('/entrar.html'); };
       document.getElementById('b-cuenta').hidden = true;
       return;
     }
     Object.assign(I101.sesion, { papel: portada.papel, empresa: portada.empresa, hoy: portada.hoy, resumen: portada.resumen || null, candidatas: abren });
-    document.title = `investor101 · ${portada.empresa.nombre}`;
+    document.title = `patron101 · ${portada.empresa.nombre}`;
     pintarCuenta();
     window.addEventListener('hashchange', I101.pintar);
     I101.pintar();

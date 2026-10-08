@@ -1,4 +1,4 @@
-/* investor101 — lo que ve quien presta: su estado de cuenta, las rondas
+/* patron101 — lo que ve quien presta: su estado de cuenta, las rondas
  * abiertas y cada uno de sus préstamos con su tabla y sus comprobantes.
  *
  * Mike, 8-oct: «que ellos puedan ver cuánto tienen invertido en taller101 y

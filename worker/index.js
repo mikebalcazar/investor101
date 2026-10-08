@@ -1,4 +1,11 @@
-/* investor101 como Worker de Cloudflare — la puerta.
+/* patron101 como Worker de Cloudflare — la puerta.
+ *
+ * EL NOMBRE. La app nació el 8-oct-2026 como «investor101» y Mike le puso
+ * «patron101» ese mismo día. Lo que la gente ve —la marca, el dominio
+ * patron101.taller101.com— dice patron101. Lo de adentro —este Worker, el
+ * repositorio, `X-App: investor101`, la llave `investor`— conserva el nombre
+ * con el que nació, igual que quell101 vive en el Worker `bitacora-obra`:
+ * renombrar infraestructura viva desliga cosas (OPERAR.md §8).
  *
  * Igual que cost101, quote101 y las demás apps de la suite (decisión D1): la
  * app vive en su propio Worker y le habla a `suite101-api` desde su mismo
@@ -67,6 +74,11 @@ export const laSuiteLeAbre = (yo) =>
 export function aDominioPropio(req, env, u) {
   const d = env.DOMINIO_PROPIO;
   const lectura = req.method === 'GET' || req.method === 'HEAD';
+  // El dominio con el que nació (investor101.taller101.com) manda al de
+  // ahora, con todo y `/s101`: nadie llegó a usarlo, y dos direcciones para
+  // la misma cuenta son dos sesiones distintas.
+  const viejo = env.DOMINIO_VIEJO;
+  if (d && viejo && u.hostname === viejo && lectura) return Response.redirect(`https://${d}${u.pathname}${u.search}`, 301);
   if (d && u.protocol === 'http:' && u.hostname === d && lectura) {
     return Response.redirect(`https://${d}${u.pathname}${u.search}`, 301);
   }
