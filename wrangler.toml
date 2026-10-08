@@ -1,4 +1,6 @@
-# investor101 como Worker de Cloudflare. Mismo patrón que cost101 y master101
+# patron101 como Worker de Cloudflare (por dentro, `investor101`: el nombre
+# con el que nació el 8-oct-2026; Mike lo llamó patron101 ese mismo día y los
+# nombres de infraestructura no se renombran, OPERAR.md §8). Mismo patrón que cost101 y master101
 # (D1 y D2). Dos Workers con el mismo código: `investor101-staging` (API de
 # staging) e `investor101` (producción, en investor101.taller101.com).
 # Las llaves no están aquí: publica el corredor con los secretos de Actions.
@@ -10,11 +12,14 @@ compatibility_date = "2026-09-01"
 # `workers_dev = true` va junto a `routes`: sin él wrangler apaga workers.dev.
 workers_dev = true
 routes = [
+  { pattern = "patron101.taller101.com", custom_domain = true },
+  # El dominio con el que nació: sigue colgado para que mande al nuevo.
   { pattern = "investor101.taller101.com", custom_domain = true }
 ]
 
 [vars]
-DOMINIO_PROPIO = "investor101.taller101.com"
+DOMINIO_PROPIO = "patron101.taller101.com"
+DOMINIO_VIEJO = "investor101.taller101.com"
 
 [assets]
 directory = "./public"

@@ -52,7 +52,7 @@ for (const ruta of ['/index.html', '/js/admin.js', '/js/nucleo.js', '/app.css', 
 // Lo público: la pantalla de entrada y lo que ella pide.
 const entrar = await pide('/entrar.html');
 const html = await entrar.text();
-dice(entrar.status === 200 && html.includes('<title>investor101') && html.includes('id="b-google"'), 'la pantalla de entrada contesta y es la de la suite', `${entrar.status}, ${html.length} bytes`);
+dice(entrar.status === 200 && html.includes('<title>patron101') && html.includes('id="b-google"'), 'la pantalla de entrada contesta y es la de la suite', `${entrar.status}, ${html.length} bytes`);
 for (const [ruta, minimo] of [['/entrar.js', 5000], ['/fonts/raleway-400.woff2', 10000], ['/fonts/sansation-700.woff2', 5000]]) {
   const r = await pide(ruta);
   const n = (await r.arrayBuffer()).byteLength;
@@ -76,6 +76,8 @@ if (esProd) {
   dice([301, 308].includes(h.status), 'http sube a https', `${h.status} → ${h.headers.get('location') || ''}`);
   const w = await fetch('https://investor101.mike-929.workers.dev/entrar.html', { redirect: 'manual' });
   dice(w.status === 301 && (w.headers.get('location') || '').startsWith(base), 'workers.dev manda al dominio', `${w.status} → ${w.headers.get('location') || ''}`);
+  const v = await fetch('https://investor101.taller101.com/entrar.html', { redirect: 'manual' });
+  dice(v.status === 301 && (v.headers.get('location') || '').startsWith(base), 'el dominio con el que nació (investor101) manda a patron101', `${v.status} → ${v.headers.get('location') || ''}`);
 }
 console.log(fallas ? `${fallas} FALLA(S)` : 'TODO BIEN');
 process.exit(fallas ? 1 : 0);

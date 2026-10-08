@@ -1,4 +1,6 @@
-/* La entrada de investor101.
+/* La entrada de patron101 (por dentro, la app `investor101`: así nació el
+ * 8-oct-2026 y así se llama su llave en la suite; Mike le puso patron101 ese
+ * mismo día, y los nombres internos no se renombran —OPERAR.md §8—).
  *
  * Es la puerta de la suite 101, la misma de quote101 y las demás (este
  * archivo es el de ellas, con dos cambios): correo y contraseña, o cuenta de
@@ -13,7 +15,7 @@
  * palabras de «no tienes acceso» no mandan a «quien administra tu empresa»,
  * que a un inversionista no le dice nada: mandan a quien lo invitó.
  *
- * Esta página es la ÚNICA pública de investor101: la app (`index.html`) sólo se
+ * Esta página es la ÚNICA pública de patron101: la app (`index.html`) sólo se
  * sirve con sesión, y el Worker manda aquí a quien llegue sin ella. Por eso el
  * archivo es aparte y no una pantalla dentro de la app: así el Worker puede
  * negarse a entregar la app entera, en vez de entregarla y pedirle a su

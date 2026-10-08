@@ -1,4 +1,4 @@
-/* investor101 — lo que ve quien dirige la empresa: rondas, ofertas,
+/* patron101 — lo que ve quien dirige la empresa: rondas, ofertas,
  * préstamos y el directorio de inversionistas.
  *
  * Los PAGOS no se registran aquí sino en dash101 (decisión de Mike con
@@ -16,8 +16,9 @@
   const q = (raiz, s) => raiz.querySelector(s);
   const valor = (raiz, n) => (raiz.querySelector(`[name="${n}"]`)?.value ?? '').trim();
 
-  /** dash101 vive en el mismo dominio con otro nombre: investor101.x → dash101.x */
-  I101.urlDash = (ruta = '') => `${location.protocol}//${location.host.replace(/^investor101/, 'dash101')}${ruta}`;
+  /** dash101 vive en el mismo dominio con otro nombre: patron101.x → dash101.x
+   *  (en staging el Worker conserva su nombre interno: investor101-staging). */
+  I101.urlDash = (ruta = '') => `${location.protocol}//${location.host.replace(/^(patron101|investor101)/, 'dash101')}${ruta}`;
 
   /* ═══════════════ inicio ═══════════════ */
 

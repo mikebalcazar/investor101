@@ -116,7 +116,7 @@ try {
       dice(x.status === 401, `sin sesión, ${f} no se entrega`, String(x.status));
     }
     const e = await fetch(BASE + '/entrar.html');
-    dice(e.status === 200 && (await e.text()).includes('investor<span'), 'la pantalla de entrada sí es pública y dice investor101');
+    dice(e.status === 200 && (await e.text()).includes('patron<span'), 'la pantalla de entrada sí es pública y dice patron101');
     const s = await fetch(BASE + `/s101/orgs/${ORG}/inversion`);
     dice(s.status === 401, 'sin sesión, nada se abre por el puente', String(s.status));
   }

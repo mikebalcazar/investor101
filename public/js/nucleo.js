@@ -1,4 +1,4 @@
-/* investor101 — el núcleo: hablarle a la API, el dinero, las fechas y las rutas.
+/* patron101 — el núcleo: hablarle a la API, el dinero, las fechas y las rutas.
  *
  * Sin armazón ni compilación: archivos sueltos que comparten `I101`. Todo le
  * habla a `/s101/*`, que el Worker reenvía a suite101-api con la cookie de
@@ -111,7 +111,7 @@ const ERRORES = {
   archivo_no_aceptado: 'Ese tipo de archivo no se acepta: sube un PDF o una foto (JPG, PNG).',
   archivo_muy_grande: 'El archivo pasa de 10 MB.',
   cuenta_desconocida: 'Esa cuenta ya no existe.',
-  app_inactiva: 'investor101 no está prendida para esta empresa.',
+  app_inactiva: 'patron101 no está prendida para esta empresa.',
   org_sin_pago: 'La suscripción de la empresa venció.',
 };
 

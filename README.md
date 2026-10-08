@@ -1,4 +1,10 @@
-# investor101
+# patron101
+
+> **El nombre.** Nació el 8-oct-2026 como «investor101»; Mike le puso
+> **patron101** ese mismo día. La marca y el dominio dicen patron101. El
+> repositorio, el Worker, `X-App: investor101` y la llave `investor` conservan
+> el nombre con el que nacieron (como quell101 en `bitacora-obra`): los
+> nombres de infraestructura no se renombran (OPERAR.md §8).
 
 Rondas de inversión y préstamos a la empresa, de la suite 101. Quien dirige
 abre una ronda («necesito juntar tanto, para tal fecha, en estas
@@ -6,10 +12,10 @@ condiciones»), avisa a su gente, aprueba ofertas y lleva cada préstamo con su
 tabla de pagos. Quien presta entra con su correo y ve su estado de cuenta:
 cuánto tiene invertido, qué día le pagan y los comprobantes de lo ya pagado.
 
-- Producción: https://investor101.taller101.com (Worker `investor101`)
+- Producción: https://patron101.taller101.com (Worker `investor101`)
 - Staging: Worker `investor101-staging` (workers.dev)
 
-## Estado (8-oct-2026) — versión 0.1.0
+## Estado (8-oct-2026) — versión 0.1.1
 
 Lo pidió Mike el 8-oct-2026. Es una app de la suite: se entra con la cuenta
 de la suite 101 (`entrar.html`) y los datos viven en la base de la empresa,

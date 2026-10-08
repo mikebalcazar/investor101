@@ -1,4 +1,4 @@
-/* investor101 — las piezas que comparten quien dirige y quien presta: el
+/* patron101 — las piezas que comparten quien dirige y quien presta: el
  * formulario de condiciones (con la tabla que resulta, en vivo), la tabla de
  * pagos, los papeles y la bitácora. */
 'use strict';
