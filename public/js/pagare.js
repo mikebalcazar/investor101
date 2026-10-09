@@ -183,8 +183,34 @@
     doc.text(I101.pesos(total), der[4] - 6, y + 15, { align: 'right' });
     y += 34;
 
+    /* — los riesgos (0.2.0) —
+     * Mike, 8-oct-2026: «un disclaimer de los riesgos de la inversión, sobre
+     * todo riesgos de no pago del cliente». Van ANTES de las firmas, para que
+     * firmar el pagaré sea también aceptarlos: es la única aceptación que hay
+     * cuando el préstamo no nació de una oferta hecha en pantalla. */
+    if (p.riesgos?.texto) {
+      const lineasDeRiesgo = String(p.riesgos.texto).split('\n').map((x) => x.trim()).filter(Boolean);
+      const cierre = p.riesgos.aceptados_at
+        ? `El beneficiario leyó y aceptó estos riesgos en patron101 el ${I101.momento(p.riesgos.aceptados_at)}, y lo ratifica con su firma.`
+        : 'Con su firma, el beneficiario declara que leyó y acepta estos riesgos.';
+      /* LAS FIRMAS NO SE QUEDAN SOLAS EN UNA HOJA. Una hoja que sólo trae dos
+       * rayas y dos nombres se puede engrapar a cualquier cosa. Si los riesgos
+       * y las firmas no caben juntos en lo que queda de esta página, los dos
+       * pasan a la siguiente: lo que se firma queda encima de la firma. */
+      doc.setFont('helvetica', 'normal').setFontSize(9);
+      const altoDe = (texto, despues) => doc.splitTextToSize(texto, UTIL).length * 9 * 1.45 + despues;
+      const altoRiesgos = 10 + (9.5 * 1.45 + 6) + lineasDeRiesgo.reduce((s, l) => s + altoDe(l, 4), 0) + altoDe(cierre, 10) + 12;
+      const ALTO_FIRMAS = 54 + 60;
+      if (altoRiesgos + ALTO_FIRMAS <= ALTO - 56 - M) cabe(altoRiesgos + ALTO_FIRMAS);
+      y += 10;
+      cabe(60);
+      parrafo('RIESGOS QUE EL BENEFICIARIO DECLARA CONOCER', { negrita: true, tam: 9.5, despues: 6 });
+      for (const linea of lineasDeRiesgo) parrafo(linea, { tam: 9, despues: 4 });
+      parrafo(cierre, { tam: 9, negrita: true, despues: 10 });
+    }
+
     /* — las firmas — */
-    cabe(150);
+    cabe(54 + 60);
     y += 54;
     const mitad = UTIL / 2 - 14;
     doc.setDrawColor(...TINTA).setLineWidth(0.8);

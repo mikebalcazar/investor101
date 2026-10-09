@@ -162,6 +162,7 @@ try {
   await p.fill('[name=lugar]', 'Ciudad de México');
   await p.locator('#f-ajustes button.pri').click();
   await p.locator('#avisos div', { hasText: 'Ajustes guardados' }).waitFor();
+  dice((await p.inputValue('[name=riesgos]')).includes('No lo protege el IPAB') && (await p.locator('#f-ajustes').innerText()).includes('(texto base)'), 'los ajustes enseñan el aviso de riesgos base, listo para que lo edite el abogado');
 
   // — la ronda —
   await ir(p, '#/ronda/nueva', 'Nueva ronda');
@@ -219,9 +220,21 @@ try {
   const mia = (await api(`/orgs/${ORG}/inversion/simular`, { method: 'POST', body: { monto: 5000000, tipo_tasa: 'mensual', tasa_pb: 300, esquema: 'unico', fecha_inicio: inicio, fecha_vencimiento: vence } })).data;
   const promesa = await m.locator('[data-mi-tabla] h3').innerText();
   dice(promesa.includes('$' + (mia.totales.total / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 })), 'le dice cuánto le regresan con su monto, con la cuenta de la API', promesa);
+  /* El aviso de riesgos (0.2.0; Mike, 8-oct: «sobre todo riesgos de no pago
+   * del cliente», y con botones: aceptación obligatoria). */
+  const aviso = await m.locator('#riesgos').innerText();
+  dice(aviso.includes('Si un cliente se atrasa o no paga') && aviso.includes('Puedes perder dinero'), 'la ronda le enseña el aviso de riesgos, con el de no pago del cliente');
+  await m.locator('#f-oferta button.acc').click();
+  await m.locator('#f-oferta .err', { hasText: 'aceptas los riesgos' }).waitFor({ timeout: 10000 });
+  dice(((await inv(`/rondas/${ronda.id}`)).data.ofertas || []).length === 0, 'sin marcar que acepta los riesgos, no se manda la oferta (API: cero ofertas)');
+  const directo = await m.evaluate(async ([o, r]) => { const x = await fetch(`/s101/orgs/${o}/inversion/rondas/${r}/ofertas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monto: 5000000 }) }); return [x.status, (await x.json()).error]; }, [ORG, ronda.id]);
+  dice(directo[0] === 400 && directo[1] === 'riesgos_sin_aceptar', 'y saltándose la pantalla, la API tampoco la recibe', directo.join(' '));
+  await m.locator('#f-oferta [name=acepta_riesgos]').check();
   await m.locator('#f-oferta button.acc').click();
   await m.locator('#f-oferta h2', { hasText: 'en revisión' }).waitFor({ timeout: 20000 });
   let vista = (await inv(`/rondas/${ronda.id}`)).data;
+  dice(/^\d{4}-\d{2}-\d{2}T/.test(vista.ofertas[0]?.riesgos_aceptados_at || ''), 'aceptarlos deja guardado cuándo (API)', String(vista.ofertas[0]?.riesgos_aceptados_at));
+  dice((await m.locator('#f-oferta').innerText()).includes('Aceptaste los riesgos el'), 'y a Ana le dice cuándo los aceptó');
   dice(vista.ofertas.length === 1 && vista.ofertas[0].monto === 5000000 && vista.ofertas[0].estado === 'pendiente' && vista.ofertas[0].inversionista_nombre === 'Ana Robles', '«le entro» dejó su oferta pendiente por $50,000 (API)');
   dice((await desborde(m)) <= 1, 'la ronda no se desborda a lo ancho en el celular', (await desborde(m)) + ' px');
   // Lo de quien dirige no se le abre aunque teclee la dirección.
@@ -234,6 +247,7 @@ try {
   /* ══════════ quien dirige acepta ══════════ */
   console.log('\n== Aceptar, depositar, pagar ==');
   await ir(p, `#/ronda/${ronda.id}`, 'Puente de prueba');
+  dice((await p.locator('[data-oferta]', { hasText: 'Ana Robles' }).locator('[data-riesgos="si"]').innerText()).includes('Aceptó los riesgos'), 'quien dirige ve que Ana aceptó los riesgos');
   await p.locator('[data-oferta]', { hasText: 'Ana Robles' }).getByRole('button', { name: 'Aceptar' }).click();
   await p.locator('[data-panel-oferta] [data-simulacion] table').waitFor({ timeout: 15000 });
   dice(await p.locator('[data-panel-oferta] [data-campos]').isHidden(), 'al aceptar se ve la tabla que resulta; las condiciones sólo si se piden distintas');
@@ -258,9 +272,12 @@ try {
   const pdf = await m.evaluate(async (id) => {
     const pp = await window.I101.inv(`/prestamos/${id}`);
     const doc = await window.I101.armarPagare(pp);
-    return { paginas: doc.getNumberOfPages(), bytes: doc.output('arraybuffer').byteLength, letra: window.I101.montoConLetra(pp.monto), otros: [100, 2100000, 100000000, 3141592, 150075].map(window.I101.montoConLetra) };
+    return { paginas: doc.getNumberOfPages(), bytes: doc.output('arraybuffer').byteLength, riesgos: pp.riesgos, crudo: doc.output(), letra: window.I101.montoConLetra(pp.monto), otros: [100, 2100000, 100000000, 3141592, 150075].map(window.I101.montoConLetra) };
   }, pr.id);
-  dice(pdf.paginas === 1 && pdf.bytes > 3000 && pdf.letra === 'CINCUENTA MIL PESOS 00/100 M.N.', 'el pagaré se arma en PDF, con el monto en letra', `${pdf.paginas} página · ${pdf.bytes} bytes · ${pdf.letra}`);
+  dice(pdf.paginas >= 1 && pdf.paginas <= 2 && pdf.bytes > 3000 && pdf.letra === 'CINCUENTA MIL PESOS 00/100 M.N.', 'el pagaré se arma en PDF, con el monto en letra', `${pdf.paginas} página(s) · ${pdf.bytes} bytes · ${pdf.letra}`);
+  dice(!!pdf.riesgos?.aceptados_at && pdf.riesgos.texto.includes('Si un cliente se atrasa o no paga'), 'el préstamo carga el aviso que Ana aceptó, con su hora (API)');
+  dice(pdf.crudo.includes('RIESGOS QUE EL BENEFICIARIO DECLARA CONOCER') && pdf.crudo.includes('y lo ratifica con su firma'), 'el pagaré imprime los riesgos antes de las firmas');
+  dice((await m.locator('details.riesgos').innerText()).includes('Los aceptaste el'), 'en su préstamo, Ana puede releer los riesgos que aceptó');
   dice(JSON.stringify(pdf.otros) === JSON.stringify(['UN PESO 00/100 M.N.', 'VEINTIÚN MIL PESOS 00/100 M.N.', 'UN MILLÓN DE PESOS 00/100 M.N.', 'TREINTA Y UN MIL CUATROCIENTOS QUINCE PESOS 92/100 M.N.', 'MIL QUINIENTOS PESOS 75/100 M.N.']), 'el monto en letra sale bien en los casos que suelen fallar', pdf.otros.join(' | '));
   dice((await desborde(m)) <= 1, 'el préstamo no se desborda a lo ancho en el celular', (await desborde(m)) + ' px');
 

@@ -181,6 +181,19 @@ input[type=checkbox],input[type=radio]{width:18px;height:18px;padding:0;accent-c
 .aviso.mal{background:var(--mal-tenue);color:var(--mal)}
 .aviso.azul{background:var(--azul-tenue);color:#00517c}
 
+/* ── el aviso de riesgos (0.2.0) ──
+   Va en el color de «ojo», no en el de error: no es algo que salió mal, es
+   algo que hay que leer antes de decir que sí. El texto conserva sus saltos
+   de línea porque lo escribe la empresa (o su abogado) en Ajustes. */
+.riesgos{border:1px solid #f0d49b;background:var(--ojo-tenue)}
+.riesgos h2{color:#6b4500}
+.riesgos .texto{white-space:pre-line;color:#4a3305;font-size:14.5px;line-height:1.6;margin:0;overflow-wrap:anywhere}
+.riesgos .acepto{margin:10px 0 0;font-size:13.5px;color:#6b4500}
+.acepta-riesgos{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;background:#fff;border:1px solid #f0d49b;font-weight:600;line-height:1.4;cursor:pointer}
+.acepta-riesgos input{margin-top:2px}
+details.riesgos>summary{cursor:pointer;font-weight:700;color:#6b4500;list-style-position:inside}
+details.riesgos[open]>summary{margin-bottom:10px}
+
 /* ── panel que se abre dentro de un renglón ── */
 .panel{background:var(--papel);border:1px solid var(--linea);border-radius:10px;padding:14px;margin:4px 0 12px}
 .panel>h3{margin:0 0 10px}

@@ -126,7 +126,8 @@
       const pend = o.estado === 'pendiente';
       const monto = o.estado === 'aprobada' && o.monto_aprobado !== o.monto ? `${pesos(o.monto_aprobado)}<span>ofreció ${pesos(o.monto)}</span>` : pesos(o.monto);
       return `<li data-oferta="${h(o.id)}"><div class="ren">
-        <div class="p"><b>${h(o.inversionista_nombre)} ${I101.etiqueta(I101.ESTADO_OFERTA, o.estado)}</b><span>${h(I101.momento(o.creado_at))}${o.nota ? ` · «${h(o.nota)}»` : ''}${o.motivo ? ` · ${h(o.motivo)}` : ''}</span></div>
+        <div class="p"><b>${h(o.inversionista_nombre)} ${I101.etiqueta(I101.ESTADO_OFERTA, o.estado)}</b><span>${h(I101.momento(o.creado_at))}${o.nota ? ` · «${h(o.nota)}»` : ''}${o.motivo ? ` · ${h(o.motivo)}` : ''}</span>
+          <span data-riesgos="${o.riesgos_aceptados_at ? 'si' : 'no'}">${o.riesgos_aceptados_at ? `Aceptó los riesgos · ${h(I101.momento(o.riesgos_aceptados_at))}` : 'La capturaste tú: no aceptó los riesgos en pantalla (van en el pagaré)'}</span></div>
         <div class="m"><b>${monto}</b></div>
         ${pend ? '<div class="acc"><button class="b chico pri" data-oferta-hacer="aprobar">Aceptar</button><button class="b chico" data-oferta-hacer="rechazar">Rechazar</button></div>' : o.prestamo_id ? `<div class="acc"><a class="b chico" href="#/prestamo/${h(o.prestamo_id)}">Préstamo</a></div>` : ''}
         </div><div data-panel-oferta></div></li>`;
@@ -606,7 +607,9 @@
           <label class="campo"><span>Quién firma por la empresa</span><input name="representante" value="${h(a.representante)}" maxlength="160"></label>
           <label class="campo"><span>Lugar de firma y de pago</span><input name="lugar" value="${h(a.lugar)}" maxlength="160" placeholder="Ciudad de México"></label>
         </div>
-        <p class="err"></p><div class="pie-form"><button class="b pri">Guardar</button></div>
+        <label class="campo"><span>Aviso de riesgos <small>${a.riesgos_propio ? '(texto de tu empresa)' : '(texto base)'}</small></span><textarea name="riesgos" rows="13" maxlength="6000">${h(a.riesgos)}</textarea>
+          <small>Quien presta lo lee en cada ronda y tiene que aceptarlo para ofrecer; queda guardado qué texto aceptó y cuándo. También va impreso en el pagaré. Pídele a tu abogado que lo revise. Cambiarlo no toca lo que ya se aceptó.</small></label>
+        <p class="err"></p><div class="pie-form">${a.riesgos_propio ? '<button type="button" class="b" data-riesgos-base>Volver al texto base</button>' : ''}<button class="b pri">Guardar</button></div>
       </form>
       <section class="tarjeta"><h2>Cómo se hace la cuenta</h2>
         <ul style="margin:0;padding-left:20px;display:grid;gap:6px">
@@ -618,8 +621,13 @@
         </ul></section>`);
     q(raiz, '#f-ajustes').addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const r = await I101.hacer(q(raiz, '#f-ajustes button'), () => I101.inv('/ajustes', { metodo: 'PUT', cuerpo: { instrucciones: valor(raiz, 'instrucciones'), representante: valor(raiz, 'representante'), lugar: valor(raiz, 'lugar') } }), q(raiz, '#f-ajustes .err'));
-      if (r) I101.avisa('Ajustes guardados.');
+      const r = await I101.hacer(q(raiz, '#f-ajustes button.pri'), () => I101.inv('/ajustes', { metodo: 'PUT', cuerpo: { instrucciones: valor(raiz, 'instrucciones'), representante: valor(raiz, 'representante'), lugar: valor(raiz, 'lugar'), riesgos: valor(raiz, 'riesgos') } }), q(raiz, '#f-ajustes .err'));
+      if (r) { I101.avisa('Ajustes guardados.'); A.ajustes(); }
+    });
+    q(raiz, '[data-riesgos-base]')?.addEventListener('click', async (ev) => {
+      if (!confirm('¿Volver al texto base del aviso de riesgos? Se pierde el texto de tu empresa.')) return;
+      const r = await I101.hacer(ev.currentTarget, () => I101.inv('/ajustes', { metodo: 'PUT', cuerpo: { riesgos: '' } }), q(raiz, '#f-ajustes .err'));
+      if (r) { I101.avisa('Aviso de riesgos: texto base.'); A.ajustes(); }
     });
   };
 })();

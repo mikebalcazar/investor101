@@ -8,6 +8,22 @@ investor101.taller101.com, redirige al nuevo.
 Estado al **8-oct-2026**. Lo escribe el chat de Cowork que construyó la app
 el mismo día en que Mike la pidió.
 
+## 0.2.0 (8-oct) — el aviso de riesgos
+
+Mike: «Necesito agregar un disclaimer de los riesgos de la inversión, sobre
+todo riesgos de no pago del cliente». Con botones: **aceptación obligatoria**.
+
+- Quien presta lee el aviso en la ronda y marca la casilla para ofrecer; la
+  API (0.84.0) guarda la hora y el texto aceptado. Sin casilla no hay oferta,
+  tampoco saltándose la pantalla.
+- El texto base vive en `suite101-api/src/inversion.ts` (`RIESGOS_BASE`); cada
+  empresa lo edita en Ajustes. Lo ya aceptado no cambia.
+- El pagaré lo imprime antes de las firmas, y las firmas nunca quedan solas
+  en una hoja.
+- Una oferta capturada por quien dirige no trae aceptación: la da la firma.
+- Mismo día, defecto de la API: quien ya era cliente o personal de la
+  empresa y se daba de alta como inversionista no entraba. Arreglado allá.
+
 ## Qué es
 
 Rondas de inversión y préstamos a la empresa. Mike, 8-oct: «taller tiene un

@@ -15,7 +15,7 @@ cuánto tiene invertido, qué día le pagan y los comprobantes de lo ya pagado.
 - Producción: https://patron101.taller101.com (Worker `investor101`)
 - Staging: Worker `investor101-staging` (workers.dev)
 
-## Estado (8-oct-2026) — versión 0.1.1
+## Estado (8-oct-2026) — versión 0.2.0
 
 Lo pidió Mike el 8-oct-2026. Es una app de la suite: se entra con la cuenta
 de la suite 101 (`entrar.html`) y los datos viven en la base de la empresa,
