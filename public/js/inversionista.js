@@ -91,6 +91,8 @@
           ${r.ejemplo ? `<div><dt>Por cada $10,000 regresan</dt><dd>${pesos(r.ejemplo.totales.total)}</dd></div>` : ''}`)}
         <p class="nota">El interés corre desde el día en que se confirma tu depósito.</p></section>
 
+      ${r.riesgos ? `<section class="tarjeta riesgos" id="riesgos"><h2>Riesgos que debes conocer</h2><p class="texto">${h(r.riesgos)}</p></section>` : ''}
+
       ${resueltas.map((o) => `<section class="tarjeta${o.estado === 'aprobada' ? ' realce' : ''}"><h2>Tu oferta ${I101.etiqueta(I101.ESTADO_OFERTA, o.estado)} <span class="der">${h(I101.momento(o.creado_at))}</span></h2>
         ${o.estado === 'aprobada' ? `<p style="margin:0 0 10px">Te aceptaron <b>${pesos(o.monto_aprobado)}</b>${o.monto_aprobado !== o.monto ? ` (ofreciste ${pesos(o.monto)})` : ''}. Lo que sigue es tu depósito.</p><a class="b acc" href="#/prestamo/${h(o.prestamo_id)}">Ver mi préstamo y cómo depositar</a>`
     : o.estado === 'rechazada' ? `<p style="margin:0">Tu oferta de ${pesos(o.monto)} no entró esta vez.${o.motivo ? ` Motivo: ${h(o.motivo)}` : ''}</p>` : `<p style="margin:0">Retiraste tu oferta de ${pesos(o.monto)}.</p>`}</section>`).join('')}
@@ -100,6 +102,8 @@
         <label class="campo"><span>Con cuánto</span><div class="con-signo"><i>$</i><input name="monto" inputmode="decimal" autocomplete="off" value="${h(I101.enPesos(sugerido))}"></div></label>
         <div data-mi-tabla aria-live="polite"></div>
         <label class="campo"><span>Algo que quieras decir <small>(opcional)</small></span><input name="nota" maxlength="500" value="${h(pendiente?.nota || '')}"></label>
+        ${pendiente?.riesgos_aceptados_at ? `<p class="nota" style="margin:0">Aceptaste los riesgos el ${h(I101.momento(pendiente.riesgos_aceptados_at))}. Para cambiar tu oferta se te pide de nuevo.</p>` : ''}
+        <label class="acepta-riesgos"><input type="checkbox" name="acepta_riesgos"><span>Leí los riesgos de arriba y los acepto. Entiendo que mi pago depende de que ${h(I101.sesion.empresa.nombre)} cobre a sus clientes y que puedo perder dinero.</span></label>
         <p class="err"></p>
         <div class="pie-form">${pendiente ? '<button type="button" class="b mal" data-retirar>Retirar mi oferta</button>' : ''}<button class="b acc">${pendiente ? 'Cambiar mi oferta' : 'Le entro'}</button></div>
       </form>` : (r.estado === 'abierta' ? '<p class="aviso ojo">La fecha para entrar a esta ronda ya pasó.</p>' : '')}`);
@@ -127,7 +131,12 @@
       ev.preventDefault();
       const monto = I101.aCentavos(entrada.value);
       if (!monto) { q(f, '.err').textContent = 'Escribe con cuánto, en pesos.'; return; }
-      const res = await I101.hacer(q(f, 'button.acc'), () => I101.inv(`/rondas/${id}/ofertas`, { cuerpo: { monto, nota: q(f, '[name="nota"]').value } }), q(f, '.err'));
+      /* La aceptación de riesgos es obligatoria (Mike, 8-oct, con botones). Se
+       * revisa aquí para decirlo sin viaje, pero quien manda es la API: sin
+       * `acepta_riesgos: true` contesta 400 `riesgos_sin_aceptar`. */
+      const acepta = q(f, '[name="acepta_riesgos"]').checked;
+      if (!acepta) { q(f, '.err').textContent = 'Antes de ofrecer, marca que leíste y aceptas los riesgos.'; q(f, '[name="acepta_riesgos"]').focus(); return; }
+      const res = await I101.hacer(q(f, 'button.acc'), () => I101.inv(`/rondas/${id}/ofertas`, { cuerpo: { monto, nota: q(f, '[name="nota"]').value, acepta_riesgos: true } }), q(f, '.err'));
       if (res) { I101.avisa('Listo: tu oferta quedó en revisión.'); V.ronda(id); }
     });
     q(f, '[data-retirar]')?.addEventListener('click', async (ev) => {
@@ -153,6 +162,9 @@
         <p class="sub">${h(I101.tasa(p.tipo_tasa, p.tasa_pb))} · ${h(I101.comoSePaga({ ...p, num_pagos: s.pagos_total }))}</p></div>
         <div class="acc"><button class="b" data-pagare>Pagaré en PDF</button></div></div>
       <p class="err" id="err-accion"></p>
+
+      ${p.riesgos?.texto ? `<details class="tarjeta riesgos"${porDepositar ? ' open' : ''}><summary>Riesgos de este préstamo</summary><p class="texto">${h(p.riesgos.texto)}</p>
+        <p class="acepto">${p.riesgos.aceptados_at ? `Los aceptaste el ${h(I101.momento(p.riesgos.aceptados_at))}.` : 'Van impresos en el pagaré: al firmarlo los aceptas.'}</p></details>` : ''}
 
       ${porDepositar ? `<section class="tarjeta realce"><h2>Lo que sigue: tu depósito</h2>
         <ol style="margin:0 0 10px;padding-left:20px;display:grid;gap:6px">

@@ -111,6 +111,7 @@ const ERRORES = {
   archivo_no_aceptado: 'Ese tipo de archivo no se acepta: sube un PDF o una foto (JPG, PNG).',
   archivo_muy_grande: 'El archivo pasa de 10 MB.',
   cuenta_desconocida: 'Esa cuenta ya no existe.',
+  riesgos_sin_aceptar: 'Antes de ofrecer, marca que leíste y aceptas los riesgos.',
   app_inactiva: 'patron101 no está prendida para esta empresa.',
   org_sin_pago: 'La suscripción de la empresa venció.',
 };
