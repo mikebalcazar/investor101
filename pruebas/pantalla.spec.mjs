@@ -117,6 +117,10 @@ try {
     }
     const e = await fetch(BASE + '/entrar.html');
     dice(e.status === 200 && (await e.text()).includes('patron<span'), 'la pantalla de entrada sí es pública y dice patron101');
+    for (const f of ['/favicon.ico', '/icono.svg', '/apple-touch-icon.png']) {
+      const i = await fetch(BASE + f, { redirect: 'manual' });
+      dice(i.status === 200 && (await i.arrayBuffer()).byteLength > 500, `el ícono ${f} se entrega sin sesión`, String(i.status));
+    }
     const s = await fetch(BASE + `/s101/orgs/${ORG}/inversion`);
     dice(s.status === 401, 'sin sesión, nada se abre por el puente', String(s.status));
   }
