@@ -131,9 +131,21 @@
     </table></div>`;
 
   /** Las condiciones ya acordadas, en pares dato-valor. */
+  /** «18 % anual»: a cuánto equivale la ronda en tasa anual simple, para que
+   *  quien presta la compare con un número que conoce (Mike, 9-oct-2026: «3 %
+   *  en 2 meses (…) es una tasa de rendimiento del 18 % anual»). La cuenta la
+   *  hace la API (`ejemplo.tasa_anual_pb`); aquí sólo se escribe. Si la tasa ya
+   *  es anual no se repite. */
+  I101.anual = (c) => {
+    const pb = c?.ejemplo?.tasa_anual_pb;
+    if (c?.tipo_tasa === 'anual' || pb == null || pb <= 0) return '';
+    return `${(Math.round(pb / 10) / 10).toFixed(1).replace(/\.0$/, '')} % anual`;
+  };
+
   I101.datosCondiciones = (c, extra = '') => `
     <dl class="datos">
-      <div><dt>Rendimiento</dt><dd>${h(I101.tasa(c.tipo_tasa, c.tasa_pb))}</dd></div>
+      <div><dt>Rendimiento</dt><dd>${h(I101.tasa(c.tipo_tasa, c.tasa_pb))}${c.tipo_tasa === 'fija' && c.ejemplo?.plazo ? ` <small>(${h(c.ejemplo.plazo)})</small>` : ''}</dd></div>
+      ${I101.anual(c) ? `<div data-tasa-anual><dt>Equivale a una tasa anual de</dt><dd>${h(I101.anual(c))}</dd></div>` : ''}
       <div><dt>Cómo se paga</dt><dd>${h(I101.comoSePaga(c))}</dd></div>
       ${extra}
     </dl>`;

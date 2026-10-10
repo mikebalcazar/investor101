@@ -1,6 +1,6 @@
 {
   "name": "investor101",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "patron101 (por dentro, investor101): rondas de inversión y préstamos a la empresa. Quien dirige abre rondas, aprueba ofertas y lleva los préstamos; quien presta ve su estado de cuenta. Un Worker de Cloudflare que pide la sesión de la suite, sirve la interfaz y le habla a la API por dentro.",
   "type": "module",

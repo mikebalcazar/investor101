@@ -219,6 +219,8 @@ try {
   dice(await m.locator('#pestanas').isHidden() && (await m.locator('header nav.menu a').count()) === 0, 'a quien presta no se le pinta el menú de quien dirige');
   dice((await m.locator('main').innerText()).includes('Faltan $90,000.00'), 've el avance total de la ronda');
   dice(!(await m.locator('main').innerText()).includes('CLABE'), 'todavía no ve a dónde depositar');
+  // Mike, 9-oct: la ronda dice a cuánto equivale en tasa anual, para comparar. 3 % mensual = 36 % anual.
+  dice((await m.locator('[data-tasa-anual]').innerText()).replace(/\s+/g, ' ').includes('36 % anual'), 'la ronda dice a cuánto equivale en tasa anual (3 % mensual = 36 % anual)', (await m.locator('[data-tasa-anual]').innerText()).replace(/\s+/g, ' '));
   await m.fill('#f-oferta [name=monto]', '50000');
   await m.locator('[data-mi-tabla] h3', { hasText: 'Con $50,000.00' }).waitFor({ timeout: 15000 });
   const mia = (await api(`/orgs/${ORG}/inversion/simular`, { method: 'POST', body: { monto: 5000000, tipo_tasa: 'mensual', tasa_pb: 300, esquema: 'unico', fecha_inicio: inicio, fecha_vencimiento: vence } })).data;
