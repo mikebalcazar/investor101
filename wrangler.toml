@@ -2,7 +2,7 @@
 # con el que nació el 8-oct-2026; Mike lo llamó patron101 ese mismo día y los
 # nombres de infraestructura no se renombran, OPERAR.md §8). Mismo patrón que cost101 y master101
 # (D1 y D2). Dos Workers con el mismo código: `investor101-staging` (API de
-# staging) e `investor101` (producción, en investor101.taller101.com).
+# staging) e `investor101` (producción, en patron.suite101.app).
 # Las llaves no están aquí: publica el corredor con los secretos de Actions.
 
 name = "investor101"
@@ -14,11 +14,17 @@ workers_dev = true
 routes = [
   { pattern = "patron101.taller101.com", custom_domain = true },
   # El dominio con el que nació: sigue colgado para que mande al nuevo.
-  { pattern = "investor101.taller101.com", custom_domain = true }
+  { pattern = "investor101.taller101.com", custom_domain = true },
+  # 11-oct-2026 · suite101.app es la marca (Mike: «taller101 será una marca de
+  # FORESPOT»). Ésta es la buena; las de arriba mandan aquí.
+  { pattern = "patron.suite101.app", custom_domain = true }
 ]
 
 [vars]
-DOMINIO_PROPIO = "patron101.taller101.com"
+DOMINIO_PROPIO = "patron.suite101.app"
+# Las de taller101.com: siguen vivas y mandan con 301 a DOMINIO_PROPIO.
+DOMINIO_ANTERIOR = "patron101.taller101.com,investor101.taller101.com"
+# La de antes de patron101: manda al dominio propio con todo y `/s101`.
 DOMINIO_VIEJO = "investor101.taller101.com"
 
 [assets]

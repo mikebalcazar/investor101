@@ -12,7 +12,7 @@ condiciones»), avisa a su gente, aprueba ofertas y lleva cada préstamo con su
 tabla de pagos. Quien presta entra con su correo y ve su estado de cuenta:
 cuánto tiene invertido, qué día le pagan y los comprobantes de lo ya pagado.
 
-- Producción: https://patron101.taller101.com (Worker `investor101`)
+- Producción: https://patron.suite101.app (Worker `investor101`; patron101.taller101.com e investor101.taller101.com mandan ahí)
 - Staging: Worker `investor101-staging` (workers.dev)
 
 ## Estado (8-oct-2026) — versión 0.2.1
