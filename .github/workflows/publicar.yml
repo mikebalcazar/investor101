@@ -71,6 +71,11 @@ jobs:
           for f in worker/index.js scripts/*.mjs pruebas/*.mjs public/entrar.js public/js/*.js; do node --check "$f"; done
           echo "todo pasa node --check"
 
+      - name: Las direcciones viejas mandan a la nueva
+        run: |
+          set -euo pipefail
+          node pruebas/dominio.spec.mjs 2>&1 | tee /tmp/medido-local.txt
+
       - name: Traer el navegador
         run: npx playwright install --with-deps chromium
 
@@ -94,7 +99,7 @@ jobs:
           set -uo pipefail
           node pruebas/servidor.mjs 8797 http://127.0.0.1:8787 &
           sleep 2
-          BASE=http://127.0.0.1:8797 API=http://127.0.0.1:8787 node pruebas/pantalla.spec.mjs 2>&1 | tee /tmp/medido-local.txt
+          BASE=http://127.0.0.1:8797 API=http://127.0.0.1:8787 node pruebas/pantalla.spec.mjs 2>&1 | tee -a /tmp/medido-local.txt
 
       - name: Sellar con este commit
         run: node scripts/sellar.mjs "${{ github.sha }}"
@@ -132,7 +137,7 @@ jobs:
         run: |
           set -euo pipefail
           npx wrangler deploy | tee /tmp/prod.txt
-          echo "url=https://patron101.taller101.com" >> "$GITHUB_OUTPUT"
+          echo "url=https://patron.suite101.app" >> "$GITHUB_OUTPUT"
 
       - name: Medir producción
         env:
@@ -140,8 +145,10 @@ jobs:
           VERSION_ESPERADA: ${{ github.sha }}
         run: |
           set -uo pipefail
-          # El certificado del dominio nuevo puede tardar la primera vez.
-          for i in $(seq 1 30); do curl -sf -o /dev/null "$PROD/huella.txt" && break; sleep 10; done
+          # El certificado del dominio nuevo puede tardar la primera vez:
+          # se espera a que conteste antes de medir.
+          url="$PROD/huella.txt"
+          for i in $(seq 1 30); do curl -sf -o /dev/null "$url" && break; sleep 10; done
           node scripts/medir.mjs 2>&1 | tee /tmp/medido-prod.txt
 
       - name: Dejar lo medido en el commit

@@ -16,9 +16,10 @@
   const q = (raiz, s) => raiz.querySelector(s);
   const valor = (raiz, n) => (raiz.querySelector(`[name="${n}"]`)?.value ?? '').trim();
 
-  /** dash101 vive en el mismo dominio con otro nombre: patron101.x → dash101.x
-   *  (en staging el Worker conserva su nombre interno: investor101-staging). */
-  I101.urlDash = (ruta = '') => `${location.protocol}//${location.host.replace(/^(patron101|investor101)/, 'dash101')}${ruta}`;
+  /** dash101 vive en el mismo dominio con otro nombre: patron.suite101.app →
+   *  dash.suite101.app (sin el «101»); en workers.dev y en staging el Worker
+   *  conserva su nombre interno: investor101-staging → dash101-staging. */
+  I101.urlDash = (ruta = '') => `${location.protocol}//${location.host.replace(/^(patron101|investor101|patron)(?=[.-])/, (m) => (m === 'patron' ? 'dash' : 'dash101'))}${ruta}`;
 
   /* ═══════════════ inicio ═══════════════ */
 
