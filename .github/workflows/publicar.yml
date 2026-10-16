@@ -81,6 +81,11 @@ jobs:
           set -euo pipefail
           node pruebas/la-puerta-recuerda.mjs 2>&1 | tee -a /tmp/medido-local.txt
 
+      - name: Al arrancar, las empresas se preguntan a la vez
+        run: |
+          set -euo pipefail
+          node pruebas/las-empresas-a-la-vez.mjs 2>&1 | tee -a /tmp/medido-local.txt
+
       - name: Traer el navegador
         run: npx playwright install --with-deps chromium
 
