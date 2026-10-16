@@ -91,6 +91,24 @@
 
   /* ─────────────── arranque ─────────────── */
 
+  /** Cuáles de las empresas abren patron101, en el orden dado (la recordada
+   *  primero), con lo que contestó cada una. Si son pocas se preguntan TODAS
+   *  A LA VEZ (16-oct-2026: antes una tras otra, ~250 ms cada una, y el dueño
+   *  de la suite trae todas); si son muchas, una por una hasta la primera que
+   *  abre, y las demás se ponen sin preguntar (sin respuesta: `d` nulo). */
+  async function cualesAbren(orden, pregunta) {
+    if (orden.length <= 6) {
+      const r = await Promise.all(orden.map((c) => pregunta(c.id).then((d) => ({ cand: c, d }), () => null)));
+      return r.filter(Boolean);
+    }
+    const abren = [];
+    for (const cand of orden) {
+      if (abren.length) { abren.push({ cand, d: null }); continue; }
+      try { abren.push({ cand, d: await pregunta(cand.id) }); } catch { /* esa empresa no trae patron101, o no le toca */ }
+    }
+    return abren;
+  }
+
   async function arrancar() {
     const vista = document.getElementById('vista');
     let yo;
@@ -108,18 +126,10 @@
     try { recordada = localStorage.getItem(RECORDADA); } catch { /* sin almacén */ }
     if (recordada && lista.has(recordada)) orden = [lista.get(recordada), ...orden.filter((x) => x.id !== recordada)];
 
-    let portada = null;
-    const abren = [];
-    for (const cand of orden) {
-      // Con la primera que abre basta para pintar; de las demás sólo hace
-      // falta saber si abren, y eso se pregunta sólo si son pocas.
-      if (portada && orden.length > 6) { abren.push(cand); continue; }
-      try {
-        const d = await I101.api(`/orgs/${encodeURIComponent(cand.id)}/inversion`);
-        abren.push({ id: cand.id, nombre: d.empresa.nombre });
-        if (!portada) { portada = d; I101.org = cand.id; }
-      } catch { /* esa empresa no trae patron101, o no le toca */ }
-    }
+    const respuestas = await cualesAbren(orden, (id) => I101.api(`/orgs/${encodeURIComponent(id)}/inversion`));
+    const abren = respuestas.map(({ cand, d }) => ({ id: cand.id, nombre: d?.empresa?.nombre ?? cand.nombre }));
+    const portada = respuestas[0]?.d || null;
+    if (portada) I101.org = respuestas[0].cand.id;
     if (!portada) {
       vista.innerHTML = `<section class="tarjeta"><h2>Todavía no hay nada que ver</h2>
         <p style="margin:0 0 12px">Entraste como ${h(yo.usuario?.correo || '')}, pero ese correo no está dado de alta como inversionista ni dirige una empresa con patron101. Si te llegó una invitación, revisa que sea este mismo correo.</p>
