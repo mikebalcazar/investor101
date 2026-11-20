@@ -28,6 +28,9 @@ dos unos días con un aviso, o dejar las dos).
   presta.
 - Los correos que la API le manda a quien dirige («hay una oferta nueva»)
   siguen trayendo la liga de aquí; al abrirla llega a esa ronda en dash101.
+- La primera publicación se detuvo en «Medir staging» sin tocar producción:
+  el borde aún contestaba con el Worker anterior. `medir.mjs` ahora vuelve
+  a pedir `/a-dash` hasta que conteste el nuevo.
 - Medido: `a-dash.spec.mjs` 40 de 40; `las-empresas-a-la-vez.mjs` 10;
   `dominio` 30; `la-puerta-recuerda` 16; y `pantalla.spec.mjs` 77 de 77
   contra la API levantada en local (quien presta, en el celular, igual que
