@@ -23,6 +23,8 @@ const puerto = Number(process.argv[2] || 8797);
 const API = (process.argv[3] || process.env.API_LOCAL || 'http://127.0.0.1:8787').replace(/\/$/, '');
 
 const env = {
+  // Dónde «vive» dash101 en local: nadie escucha ahí; las pruebas miran a dónde se manda.
+  URL_DASH: process.env.URL_DASH || 'http://127.0.0.1:8799',
   ASSETS: {
     async fetch(req) {
       const ruta = decodeURIComponent(new URL(req.url).pathname);

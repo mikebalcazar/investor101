@@ -5,6 +5,34 @@ patron101». Marca y dominio: patron101. Repo, Worker, `X-App` y llave
 `investor`: se quedan como nacieron (OPERAR.md §8). El dominio viejo,
 investor101.taller101.com, redirige al nuevo.
 
+## 0.3.0 (20-nov) — quien dirige, a dash101
+
+Mike: «hay que meter patron101 a dash también. Igual que bill101». Lo de
+quien dirige se rehízo en dash101 (menú «Préstamos», dash101 #190). Sobre
+esta dirección, con botones: **«Mandarlo a dash101»** (las otras: dejar las
+dos unos días con un aviso, o dejar las dos).
+
+- `arranque.js` ya sólo pregunta por las empresas a las que la persona LE
+  PRESTA, y sólo cuentan las que contestan con papel de inversionista. Si
+  ninguna y la persona dirige alguna empresa: a dash101, a la pantalla que
+  corresponde a su liga (`I101.rutaEnDash`: `#/ronda/ID` →
+  `/inversion/rondas/ID`, etc.). Quien presta Y dirige otra empresa se queda
+  aquí con su cuenta, y en el menú de la cuenta tiene «Lo de tu empresa, en
+  dash101».
+- `worker/index.js`: `/a-dash?ruta=/inversion/…` contesta 302 a
+  `URL_DASH` (producción: dash.suite101.app; staging: dash101-staging). Sólo
+  acepta rutas de `/inversion` hechas de letras, números y guiones: no es
+  una redirección abierta. No pide sesión (no entrega nada).
+- Fuera `public/js/admin.js` y el menú de secciones. `piezas.js`,
+  `pagare.js`, `nucleo.js` e `inversionista.js` se quedan: los usa quien
+  presta.
+- Los correos que la API le manda a quien dirige («hay una oferta nueva»)
+  siguen trayendo la liga de aquí; al abrirla llega a esa ronda en dash101.
+- Medido: `a-dash.spec.mjs` 40 de 40; `las-empresas-a-la-vez.mjs` 10;
+  `dominio` 30; `la-puerta-recuerda` 16; y `pantalla.spec.mjs` 77 de 77
+  contra la API levantada en local (quien presta, en el celular, igual que
+  antes; lo de quien dirige, por la API diciendo `X-App: dash101`).
+
 Estado al **8-oct-2026**. Lo escribe el chat de Cowork que construyó la app
 el mismo día en que Mike la pidió.
 

@@ -1,13 +1,14 @@
 {
   "name": "investor101",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "private": true,
-  "description": "patron101 (por dentro, investor101): rondas de inversión y préstamos a la empresa. Quien dirige abre rondas, aprueba ofertas y lleva los préstamos; quien presta ve su estado de cuenta. Un Worker de Cloudflare que pide la sesión de la suite, sirve la interfaz y le habla a la API por dentro.",
+  "description": "patron101 (por dentro, investor101): la cuenta de quien le presta a la empresa. Ve las rondas abiertas, dice con cuánto le entra y sigue su estado de cuenta. Lo de quien dirige vive en dash101 (Préstamos); si llega aquí, se le manda allá. Un Worker de Cloudflare que pide la sesión de la suite, sirve la interfaz y le habla a la API por dentro.",
   "type": "module",
   "scripts": {
     "servir": "node pruebas/servidor.mjs 8797 http://127.0.0.1:8787",
     "prueba": "node pruebas/pantalla.spec.mjs",
     "prueba:dominio": "node pruebas/dominio.spec.mjs",
+    "prueba:a-dash": "node pruebas/a-dash.spec.mjs",
     "medir": "node scripts/medir.mjs"
   },
   "devDependencies": {

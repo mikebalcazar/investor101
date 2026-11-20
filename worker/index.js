@@ -19,8 +19,9 @@
  * esconda solo.
  *
  * LO QUE ESTA PUERTA TIENE DE DISTINTO: aquí entra gente que NO es de la
- * empresa. A investor101 llega quien la dirige y, sobre todo, quien le presta
- * dinero —el inversionista—, que no es miembro de nada. Por eso `/yo` trae
+ * empresa: quien le presta dinero —el inversionista—, que no es miembro de
+ * nada. Desde el 20-nov-2026 es la única gente de esta app: quien dirige
+ * lleva los préstamos en dash101, y si llega aquí se le manda allá (`aDash`). Por eso `/yo` trae
  * `inversion` (a qué empresas les presta) y esta puerta lo deja pasar con
  * eso. Qué ve cada quien lo decide la API renglón por renglón, no este
  * archivo: aquí sólo se decide si se entrega la pantalla.
@@ -138,11 +139,31 @@ export function aDominioPropio(req, env, u) {
   return Response.redirect(`https://${d}${u.pathname}${u.search}`, 301);
 }
 
+/* 20-nov-2026 · A DASH101. Lo de quien dirige —rondas, ofertas, préstamos,
+ * directorio, ajustes— vive en dash101, en «Préstamos» (Mike, con botones:
+ * «Mandarlo a dash101»). La página decide a qué pantalla (sólo ella ve el
+ * `#/…` de una liga vieja) y pide `/a-dash?ruta=/inversion/…`; aquí se sabe
+ * DÓNDE vive dash101 en este ambiente (`URL_DASH`).
+ *
+ * No es una redirección abierta: sólo se aceptan rutas de `/inversion`, de
+ * letras, números y guiones. Cualquier otra cosa va al inicio de Préstamos.
+ * No pide sesión: no entrega nada, y dash101 pide la suya. */
+const RUTA_EN_DASH = /^\/inversion(\/[A-Za-z0-9_-]+)*(\?de=[A-Za-z0-9_-]+)?$/;
+export function aDash(u, env) {
+  if (u.pathname !== '/a-dash') return null;
+  const base = String(env.URL_DASH || '').replace(/\/+$/, '');
+  if (!base) return new Response('dash101 no está configurado en este ambiente', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  const ruta = u.searchParams.get('ruta') || '';
+  return Response.redirect(base + (RUTA_EN_DASH.test(ruta) ? ruta : '/inversion'), 302);
+}
+
 export default {
   async fetch(req, env) {
     const u = new URL(req.url);
     const ida = aDominioPropio(req, env, u);
     if (ida) return ida;
+    const dash = aDash(u, env);
+    if (dash) return dash;
 
     if (u.pathname === PREFIJO || u.pathname.startsWith(PREFIJO + '/')) {
       u.pathname = u.pathname.slice(PREFIJO.length) || '/';

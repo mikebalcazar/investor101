@@ -50,5 +50,21 @@ const api = (abren) => {
   dice(r[0]?.cand.id === 'e3' && a.cuenta().total === 4 && a.cuenta().maximo === 1, 'con muchas, una por una hasta la primera que abre', `${a.cuenta().total} preguntas`);
 }
 
+/* 20-nov-2026 · sólo cuentan las empresas que abren COMO INVERSIONISTA: la
+ * que la persona dirige se lleva en dash101 y aquí no se ofrece. */
+{
+  const papeles = { e0: 'admin', e1: 'inversionista', e2: 'admin' };
+  const pregunta = (id) => Promise.resolve({ papel: papeles[id], empresa: { nombre: id } });
+  const sirve = (d) => d?.papel === 'inversionista';
+  const r = await cualesAbren(empresas(3), pregunta, sirve);
+  dice(r.map((x) => x.cand.id).join() === 'e1', 'de tres, sólo queda la que abre como inversionista', r.map((x) => x.cand.id).join());
+  const ninguna = await cualesAbren(empresas(1), pregunta, sirve);
+  dice(ninguna.length === 0, 'quien sólo dirige no tiene empresa aquí: se va a dash101');
+  const muchas = Object.fromEntries(empresas(10).map((e, i) => [e.id, i === 4 ? 'inversionista' : 'admin']));
+  let total = 0;
+  const m = await cualesAbren(empresas(10), (id) => { total++; return Promise.resolve({ papel: muchas[id] }); }, sirve);
+  dice(m[0]?.cand.id === 'e4' && total === 5, 'con muchas, se sigue preguntando hasta la primera que sirve', `${m[0]?.cand.id} · ${total} preguntas`);
+}
+
 console.log(`\n${revisadas - fallas} de ${revisadas} bien`);
 process.exit(fallas ? 1 : 0);

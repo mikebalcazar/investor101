@@ -43,10 +43,26 @@ dice(estado === 200 && (!esperada || version === esperada), 'sirve la versión d
 // La puerta: sin sesión, la app no se entrega.
 const raiz = await pide('/');
 dice(raiz.status === 302 && (raiz.headers.get('location') || '').endsWith('/entrar.html'), 'sin sesión, / manda a entrar', `${raiz.status} → ${raiz.headers.get('location') || ''}`);
-for (const ruta of ['/index.html', '/js/admin.js', '/js/nucleo.js', '/app.css', '/vendor/jspdf.js']) {
+for (const ruta of ['/index.html', '/js/inversionista.js', '/js/nucleo.js', '/app.css', '/vendor/jspdf.js']) {
   const r = await pide(ruta);
   const cuerpo = await r.text();
   dice((r.status === 401 || r.status === 302) && !cuerpo.includes('I101') && cuerpo.length < 2000, `sin sesión, ${ruta} no se entrega`, `${r.status}, ${cuerpo.length} bytes`);
+}
+
+/* 20-nov-2026 · quien dirige se manda a dash101 («Préstamos»). La puerta sabe
+ * dónde vive dash101 en este ambiente; aquí se mide que mande ahí, a la
+ * pantalla pedida, y que NO sea una redirección abierta. */
+{
+  const ida = await pide('/a-dash?ruta=' + encodeURIComponent('/inversion/rondas/01ABC'));
+  const a = ida.headers.get('location') || '';
+  dice(ida.status === 302 && /^https:\/\/dash[^/]*\/inversion\/rondas\/01ABC$/.test(a), '/a-dash manda a dash101, a la pantalla pedida', `${ida.status} → ${a}`);
+  for (const mala of ['https://malo.example/x', '//malo.example', '/inversion/../s101/yo', '/otra/cosa']) {
+    const r = await pide('/a-dash?ruta=' + encodeURIComponent(mala));
+    const b = r.headers.get('location') || '';
+    dice(r.status === 302 && /^https:\/\/dash[^/]*\/inversion$/.test(b), `/a-dash no es una redirección abierta: «${mala}» va al inicio de Préstamos`, `${r.status} → ${b}`);
+  }
+  const vieja = await pide('/js/admin.js');
+  dice(vieja.status !== 200, 'las pantallas de quien dirige ya no se sirven aquí', String(vieja.status));
 }
 
 // Lo público: la pantalla de entrada y lo que ella pide.

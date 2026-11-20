@@ -1,4 +1,4 @@
-/* investor101 manejado con un navegador, contra la API de verdad.
+/* patron101 (investor101) manejado con un navegador, contra la API de verdad.
  *
  * Lo que se mide es el camino completo que pidió Mike (8-oct-2026): quien
  * dirige da de alta a su gente, abre una ronda y avisa; quien presta entra
@@ -6,10 +6,18 @@
  * cuenta; quien dirige acepta, marca el depósito, edita la tabla; se paga, y
  * el préstamo se liquida.
  *
- * Son DOS personas en dos navegadores —escritorio y celular—, y lo que una
- * hace lo tiene que ver la otra. Cada paso se comprueba dos veces: en la
- * pantalla y preguntándole a la API por su cuenta. Que la pantalla diga
- * «guardado» no es prueba de nada.
+ * 20-nov-2026 · QUIEN DIRIGE YA NO VIVE AQUÍ. Sus pantallas están en dash101,
+ * en «Préstamos» (Mike: «hay que meter patron101 a dash también»; y con
+ * botones: «Mandarlo a dash101»). Así que en esta prueba:
+ *   · lo de quien PRESTA se sigue haciendo con el navegador, en el celular;
+ *   · lo de quien DIRIGE se hace por la API diciendo `X-App: dash101`, que
+ *     es como lo hace dash101 (sus pantallas se miden allá);
+ *   · y se mide lo nuevo: quien dirige y abre patron101 llega a dash101, a
+ *     la pantalla que corresponde a su liga, y aquí no se le entrega nada
+ *     de lo que era suyo.
+ *
+ * Cada paso se comprueba dos veces: en la pantalla y preguntándole a la API
+ * por su cuenta. Que la pantalla diga «guardado» no es prueba de nada.
  *
  *   BASE   dónde está investor101 (por omisión el servidor local de pruebas)
  *   API    la suite101-api a la que le habla (sólo para preguntarle directo)
@@ -17,6 +25,7 @@
  * Sólo corre contra una API que no sea producción: crea una empresa de
  * prueba (`i101-…`) y al final la borra.
  */
+import http from 'node:http';
 import { chromium } from 'playwright';
 
 const BASE = (process.env.BASE || 'http://127.0.0.1:8797').replace(/\/$/, '');
@@ -42,6 +51,17 @@ async function api(ruta, { method = 'GET', body, app = 'investor101' } = {}) {
   return { estado: r.status, ...d };
 }
 const inv = (ruta, o) => api(`/orgs/${ORG}/inversion${ruta}`, o);
+/** Lo de quien dirige, dicho como lo dice dash101. */
+const adm = (ruta, o = {}) => inv(ruta, { ...o, app: 'dash101' });
+/** Un papel subido por quien dirige (multipart), como lo sube dash101. */
+async function subir(datos, nombre, tipo, bytes) {
+  const forma = new FormData();
+  forma.set('archivo', new Blob([bytes], { type: tipo }), nombre);
+  for (const [k, v] of Object.entries(datos)) forma.set(k, v);
+  const r = await fetch(`${API}/orgs/${ORG}/inversion/archivos`, { method: 'POST', headers: { 'X-App': 'dash101', Cookie: galleta }, body: forma });
+  let d = {}; try { d = await r.json(); } catch { /* sin JSON */ }
+  return { estado: r.status, ...d };
+}
 
 let cuenta = '', hoy = '';
 
@@ -63,7 +83,7 @@ async function preparar() {
  *  contraseña», el código (fuera de producción la API lo devuelve en la
  *  respuesta) y la contraseña nueva si la pide. `destino` es la liga de un
  *  correo: tiene que sobrevivir a la entrada. */
-async function entrarPorPantalla(p, correo, destino = '') {
+async function entrarPorPantalla(p, correo, destino = '', llegaA = '') {
   await p.goto(BASE + '/' + destino, { waitUntil: 'load' });
   await p.waitForURL(/entrar\.html/);
   await p.fill('#correo', correo);
@@ -80,7 +100,20 @@ async function entrarPorPantalla(p, correo, destino = '') {
     await p.click('#b-nueva');
     await p.waitForURL((u) => new URL(u).pathname === '/', { timeout: 20000 });
   }
+  // Quien dirige no se queda: se le manda a dash101 (`llegaA`).
+  if (llegaA) return llegoA(p, llegaA);
   await p.locator('main h1').first().waitFor({ timeout: 30000 });
+  return p.url();
+}
+
+/** Espera a que la página se vaya a `base` y dice la PRIMERA dirección a la
+ *  que llegó ahí: dash101 de verdad (staging) manda después a su entrada a
+ *  quien no trae su sesión, y lo que aquí se mide es a dónde manda patron101. */
+async function llegoA(p, base) {
+  let primera = '';
+  await p.waitForURL((u) => { const t = String(u); if (!t.startsWith(base)) return false; primera ||= t; return true; }, { timeout: 30000, waitUntil: 'commit' });
+  await p.goto('about:blank');
+  return primera;
 }
 
 const titulo = (p) => p.locator('main h1').first().innerText();
@@ -93,12 +126,14 @@ async function ir(p, ruta, h1) {
   await p.locator('main h1', { hasText: h1 }).first().waitFor({ timeout: 20000 });
 }
 
+let dashFalso = null;
 const nav = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 function vigilar(p, errores, ajenos, rotos) {
-  p.on('pageerror', (e) => errores.push(String(e.message).slice(0, 200)));
+  const aqui = () => { try { return new URL(p.url()).origin === new URL(BASE).origin; } catch { return false; } };
+  p.on('pageerror', (e) => { if (aqui()) errores.push(String(e.message).slice(0, 200)); });
   // Un 403/404/409 que la app provoca a propósito sale en consola como
   // «Failed to load resource»: no es falla. Lo propio que falte lo cuenta `rotos`.
-  p.on('console', (m) => { const t = m.text(); if (m.type() === 'error' && !/Failed to load resource/.test(t)) errores.push(t.slice(0, 200)); });
+  p.on('console', (m) => { const t = m.text(); if (aqui() && m.type() === 'error' && !/Failed to load resource/.test(t)) errores.push(t.slice(0, 200)); });
   p.on('request', (r) => { const u = new URL(r.url()); if (u.origin !== new URL(BASE).origin && !/^(data|blob|about)/.test(u.protocol)) ajenos.push(u.host); });
   p.on('response', (r) => { const u = new URL(r.url()); if (r.status() >= 400 && u.origin === new URL(BASE).origin && !u.pathname.startsWith('/s101/')) rotos.push(r.status() + ' ' + u.pathname); });
 }
@@ -111,7 +146,7 @@ try {
   {
     const r = await fetch(BASE + '/', { redirect: 'manual' });
     dice(r.status === 302 && (r.headers.get('location') || '').endsWith('/entrar.html'), 'sin sesión, la app manda a entrar', `${r.status} → ${r.headers.get('location')}`);
-    for (const f of ['/js/admin.js', '/js/nucleo.js', '/app.css', '/vendor/jspdf.js']) {
+    for (const f of ['/js/inversionista.js', '/js/nucleo.js', '/app.css', '/vendor/jspdf.js']) {
       const x = await fetch(BASE + f, { redirect: 'manual' });
       dice(x.status === 401, `sin sesión, ${f} no se entrega`, String(x.status));
     }
@@ -125,86 +160,73 @@ try {
     dice(s.status === 401, 'sin sesión, nada se abre por el puente', String(s.status));
   }
 
-  /* ══════════ escritorio: quien dirige ══════════ */
-  console.log('\n== Escritorio 1440×900, quien dirige ==');
+  /* ══════════ quien dirige: aquí ya no; a dash101 ══════════ */
+  console.log('\n== Quien dirige llega a dash101 ==');
+  const aDash = await fetch(BASE + '/a-dash?ruta=' + encodeURIComponent('/inversion'), { redirect: 'manual' });
+  const DASH = (aDash.headers.get('location') || '').replace(/\/inversion$/, '');
+  dice(aDash.status === 302 && /^https?:\/\/[^/]+$/.test(DASH) && DASH !== BASE, 'la puerta sabe dónde vive dash101 en este ambiente', `${aDash.status} → ${aDash.headers.get('location')}`);
+  /* dash101 se mide en su repositorio: aquí sólo importa A DÓNDE se manda.
+   * En local nadie escucha en esa dirección, así que se pone un dash101 de
+   * mentiras que contesta cualquier ruta; en staging contesta el de verdad. */
+  if (new URL(DASH).hostname === '127.0.0.1') {
+    dashFalso = http.createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end('<!doctype html><title>dash101</title><h1>dash101 de mentiras</h1>'); });
+    await new Promise((ok) => dashFalso.listen(Number(new URL(DASH).port), '127.0.0.1', ok));
+  }
   const ctx = await nav.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   const errores = [], ajenos = [], rotos = [];
   vigilar(p, errores, ajenos, rotos);
-  await entrarPorPantalla(p, CORREO);
-  // El dueño de la suite trae todas las empresas: se le fija la de prueba.
-  await p.evaluate((o) => { localStorage.setItem('investor101:empresa', o); }, ORG);
-  await p.reload({ waitUntil: 'load' });
-  await p.locator('main h1', { hasText: 'Inicio' }).waitFor({ timeout: 30000 });
-  dice((await p.locator('#empresa').innerText()) === 'Taller de prueba', 'abre la empresa de prueba, como quien dirige');
-  dice((await p.locator('header nav.menu a').count()) === 5, 'el menú trae sus cinco secciones', (await p.locator('header nav.menu a').allInnerTexts()).join(' · '));
-  dice((await cifra(p, 'Capital que se debe')) === '$0', 'arranca sin deber nada');
+  const llego = await entrarPorPantalla(p, CORREO, '', DASH);
+  dice(llego === `${DASH}/inversion`, 'quien dirige entra y llega a «Préstamos» de dash101', llego);
+  {
+    // Con su sesión, lo que era de quien dirige ya no existe aquí.
+    const r = await ctx.request.get(BASE + '/js/admin.js');
+    dice(r.status() === 404, 'con sesión, las pantallas de quien dirige ya no se sirven', String(r.status()));
+  }
 
+  /* Lo de quien dirige, por la API, como dash101. */
+  console.log('\n== Lo de quien dirige, por la API como dash101 ==');
   // — el directorio —
-  await ir(p, '#/inversionistas', 'Inversionistas');
-  await p.getByRole('button', { name: 'Dar de alta' }).click();
-  await p.fill('#alta [name=nombre]', 'Ana Robles');
-  await p.fill('#alta [name=correo]', ANA);
-  await p.fill('#alta [name=telefono]', '55 1234 5678');
-  await p.fill('#alta [name=clabe]', '002180012345678901');
-  await p.locator('#alta button.pri').click();
-  await p.locator('main .lista li', { hasText: 'Ana Robles' }).waitFor();
-  await p.getByRole('button', { name: 'Pegar una lista' }).click();
-  await p.fill('#alta [name=lista]', `Beto Cruz, beto-${ORG}@ejemplo.mx, 81 5555 0000\nCaro Díaz\tcaro-${ORG}@ejemplo.mx\nSin Arroba, esto-no-es-correo.mx`);
-  await p.locator('#alta button.pri').click();
-  await p.locator('#alta [data-resultado] .aviso').waitFor();
-  dice((await p.locator('#alta [data-resultado]').innerText()).includes('Entraron 2'), 'de una lista pegada entran los buenos y se dice cuál no', (await p.locator('#alta [data-resultado] .pre').innerText()).slice(0, 80));
+  const altaAna = await adm('/inversionistas', { method: 'POST', body: { nombre: 'Ana Robles', correo: ANA, telefono: '55 1234 5678', clabe: '002180012345678901' } });
+  await adm('/inversionistas', { method: 'POST', body: { nombre: 'Beto Cruz', correo: `beto-${ORG}@ejemplo.mx`, telefono: '81 5555 0000' } });
+  await adm('/inversionistas', { method: 'POST', body: { nombre: 'Caro Díaz', correo: `caro-${ORG}@ejemplo.mx` } });
+  const mala = await adm('/inversionistas', { method: 'POST', body: { nombre: 'Sin Arroba', correo: 'esto-no-es-correo.mx' } });
+  dice(altaAna.estado < 300 && mala.estado >= 400, 'el directorio recibe a los buenos y rechaza un correo que no lo es', `${altaAna.estado} · ${mala.estado}`);
   let dir = (await inv('/inversionistas')).data.filas;
   dice(dir.length === 3 && dir.every((f) => f.es_prospecto), 'los tres quedaron en el directorio, como prospectos (API)', dir.map((f) => f.nombre).join(', '));
   const ana = dir.find((f) => f.nombre === 'Ana Robles');
   dice(ana?.correo === ANA && ana?.telefono === '5512345678' && !!ana?.usuario_id, 'Ana quedó con correo, teléfono y cuenta para entrar (API)');
 
   // — los ajustes —
-  await ir(p, '#/ajustes', 'Ajustes');
-  await p.fill('[name=instrucciones]', 'BBVA · CLABE 012180001234567895 · Taller de prueba SA de CV');
-  await p.fill('[name=representante]', 'Mike Balcázar');
-  await p.fill('[name=lugar]', 'Ciudad de México');
-  await p.locator('#f-ajustes button.pri').click();
-  await p.locator('#avisos div', { hasText: 'Ajustes guardados' }).waitFor();
-  dice((await p.inputValue('[name=riesgos]')).includes('No lo protege el IPAB') && (await p.locator('#f-ajustes').innerText()).includes('(texto base)'), 'los ajustes enseñan el aviso de riesgos base, listo para que lo edite el abogado');
+  const puestos = await adm('/ajustes', { method: 'PUT', body: { instrucciones: 'BBVA · CLABE 012180001234567895 · Taller de prueba SA de CV', representante: 'Quien Firma', lugar: 'Ciudad de México' } });
+  const ajustes = await adm('/ajustes');
+  dice(puestos.estado < 300 && ajustes.data?.lugar === 'Ciudad de México' && String(ajustes.data?.riesgos).includes('No lo protege el IPAB') && ajustes.data?.riesgos_propio === false, 'los ajustes guardan a dónde depositar y traen el aviso de riesgos base');
 
   // — la ronda —
-  await ir(p, '#/ronda/nueva', 'Nueva ronda');
-  dice((await p.inputValue('[name=instrucciones]')).includes('CLABE 012180001234567895'), 'la ronda nueva ya trae a dónde depositar, de los ajustes');
-  await p.fill('[name=nombre]', 'Puente de prueba');
-  await p.fill('[name=descripcion]', 'Tres semanas de nómina mientras se cobra la obra.');
-  await p.fill('[name=meta]', '90,000');
-  await p.fill('[name=tasa]', '3');
-  const inicio = await p.inputValue('[name=fecha_inicio]');
-  const vence = await p.inputValue('[name=fecha_vencimiento]');
-  const sim = (await api(`/orgs/${ORG}/inversion/simular`, { method: 'POST', body: { monto: 1000000, tipo_tasa: 'mensual', tasa_pb: 300, esquema: 'unico', fecha_inicio: inicio, fecha_vencimiento: vence } })).data;
-  const esperado = '$' + (sim.totales.total / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 });
-  await p.locator('[data-simulacion] tfoot td', { hasText: esperado }).waitFor({ timeout: 15000 }).catch(() => {});
-  const pintado = await p.locator('[data-simulacion] tfoot td').last().innerText();
-  dice(pintado === esperado && sim.totales.interes > 0, 'la tabla que se ve al teclear es la de la API, al centavo', `${pintado} = ${esperado}`);
-  // En parcialidades el formulario cambia de campos y la tabla crece.
-  await p.locator('label.opcion', { hasText: 'En parcialidades' }).click();
-  await p.fill('[name=num_pagos]', '4');
-  await p.waitForFunction(() => document.querySelectorAll('[data-simulacion] tbody tr').length === 4, null, { timeout: 15000 });
-  dice(await p.locator('[name=fecha_vencimiento]').isHidden(), 'en parcialidades se esconde «se paga todo el» y la tabla trae 4 pagos');
-  await p.locator('label.opcion', { hasText: 'Un solo pago' }).click();
-  await p.locator('#b-guardar-ronda').click();
-  await p.locator('main h1', { hasText: 'Puente de prueba' }).waitFor({ timeout: 20000 });
-  dice((await titulo(p)).includes('Borrador'), 'la ronda nace en borrador');
+  const mas = (n) => new Date(Date.parse(hoy) + n * 86400000).toISOString().slice(0, 10);
+  const inicio = mas(3), vence = mas(33);
+  const nueva = await adm('/rondas', { method: 'POST', body: {
+    nombre: 'Puente de prueba', descripcion: 'Tres semanas de nómina mientras se cobra la obra.', monto_meta: 9000000, monto_minimo: null, fecha_limite: null,
+    instrucciones: ajustes.data.instrucciones, tipo_tasa: 'mensual', tasa_pb: 300, esquema: 'unico', fecha_inicio: inicio, fecha_vencimiento: vence,
+    frecuencia: null, num_pagos: null, fecha_primer_pago: null,
+  } });
   let rondas = (await inv('/rondas')).data.filas;
   const ronda = rondas[0];
-  dice(rondas.length === 1 && ronda.monto_meta === 9000000 && ronda.tasa_pb === 300 && ronda.esquema === 'unico' && ronda.estado === 'borrador', 'quedó en la base con su meta en centavos y su tasa en puntos base (API)', `${ronda.monto_meta} · ${ronda.tasa_pb}`);
-
-  await p.getByRole('button', { name: 'Abrir la ronda' }).click();
-  await p.locator('#panel-avisar .tarjeta').waitFor({ timeout: 20000 });
-  dice((await titulo(p)).includes('Abierta'), 'se abre, y enseguida ofrece avisar');
-  dice((await p.locator('#panel-avisar .lista li').count()) === 3, 'el aviso lista a los tres del directorio');
-  const wa = await p.locator('#panel-avisar .lista li', { hasText: 'Ana Robles' }).locator('a.wa').getAttribute('href');
+  dice(nueva.estado < 300 && rondas.length === 1 && ronda.monto_meta === 9000000 && ronda.tasa_pb === 300 && ronda.esquema === 'unico' && ronda.estado === 'borrador', 'la ronda nace en borrador, con su meta en centavos y su tasa en puntos base (API)', `${nueva.estado} · ${ronda?.monto_meta} · ${ronda?.tasa_pb}`);
+  const abierta = await adm(`/rondas/${ronda.id}/abrir`, { method: 'POST' });
+  dice(abierta.estado < 300 && (await inv(`/rondas/${ronda.id}`)).data.estado === 'abierta', 'se abre', String(abierta.estado));
+  const aviso0 = (await adm(`/rondas/${ronda.id}/aviso`)).data.filas;
+  const wa = aviso0.find((f) => f.nombre === 'Ana Robles')?.whatsapp;
+  dice(aviso0.length === 3, 'el aviso lista a los tres del directorio');
   dice(/^https:\/\/wa\.me\/525512345678\?text=/.test(wa || '') && decodeURIComponent(wa).includes('Puente de prueba') && decodeURIComponent(wa).includes('$90,000.00'), 'la liga de WhatsApp de Ana lleva su número con lada y el mensaje ya escrito');
-  dice((await p.locator('#panel-avisar .lista li', { hasText: 'Caro Díaz' }).locator('a.wa').count()) === 0, 'quien no tiene teléfono no trae botón de WhatsApp');
-  await p.locator('#b-enviar-aviso').click();
-  await p.locator('#panel-avisar [data-resultado]', { hasText: 'No salió' }).first().waitFor({ timeout: 20000 });
-  dice((await p.locator('#panel-avisar [data-resultado]', { hasText: /No salió: (en este entorno de pruebas el correo no sale|el correo no está configurado)/ }).count()) === 3, 'fuera de producción el correo no sale, y la pantalla lo dice en vez de fingir');
+  dice(!aviso0.find((f) => f.nombre === 'Caro Díaz')?.whatsapp, 'quien no tiene teléfono no trae liga de WhatsApp');
+  const avisados = await adm(`/rondas/${ronda.id}/avisar`, { method: 'POST', body: { a: aviso0.map((f) => f.id) } });
+  dice(avisados.data?.enviados === 0 && avisados.data?.filas.every((f) => f.correo_enviado.enviado === false && /correo_apagado_fuera_de_produccion|correo_no_configurado/.test(f.correo_enviado.motivo)), 'fuera de producción el correo no sale, y la API lo dice en vez de fingir');
+
+  // La liga que le llega por correo a quien dirige (una ronda) abre esa ronda… en dash101.
+  await p.goto(`${BASE}/#/ronda/${ronda.id}`, { waitUntil: 'commit' });
+  const aLaRonda = await llegoA(p, DASH);
+  dice(aLaRonda === `${DASH}/inversion/rondas/${ronda.id}`, 'la liga vieja de una ronda abre esa ronda en dash101', aLaRonda);
 
   /* ══════════ celular: quien presta ══════════ */
   console.log('\n== Celular 390×844, quien presta ==');
@@ -252,17 +274,12 @@ try {
 
   /* ══════════ quien dirige acepta ══════════ */
   console.log('\n== Aceptar, depositar, pagar ==');
-  await ir(p, `#/ronda/${ronda.id}`, 'Puente de prueba');
-  dice((await p.locator('[data-oferta]', { hasText: 'Ana Robles' }).locator('[data-riesgos="si"]').innerText()).includes('Aceptó los riesgos'), 'quien dirige ve que Ana aceptó los riesgos');
-  await p.locator('[data-oferta]', { hasText: 'Ana Robles' }).getByRole('button', { name: 'Aceptar' }).click();
-  await p.locator('[data-panel-oferta] [data-simulacion] table').waitFor({ timeout: 15000 });
-  dice(await p.locator('[data-panel-oferta] [data-campos]').isHidden(), 'al aceptar se ve la tabla que resulta; las condiciones sólo si se piden distintas');
-  await p.locator('[data-panel-oferta] button.pri').click();
-  await p.locator('[data-oferta]', { hasText: 'Aceptada' }).waitFor({ timeout: 20000 });
+  const aceptada = await adm(`/ofertas/${vista.ofertas[0].id}/aprobar`, { method: 'POST', body: { monto_aprobado: 5000000 } });
   let prestamos = (await inv('/prestamos')).data.filas;
   const pr = prestamos[0];
-  dice(prestamos.length === 1 && pr.estado === 'por_depositar' && pr.monto === 5000000 && pr.tasa_pb === 300, 'la oferta aceptada es un préstamo por depositar (API)', pr.folio);
-  dice((await p.locator('main').innerText()).includes('$50,000.00 aceptado de $90,000.00'), 'la ronda ya cuenta lo aceptado');
+  dice(aceptada.estado < 300 && prestamos.length === 1 && pr.estado === 'por_depositar' && pr.monto === 5000000 && pr.tasa_pb === 300, 'la oferta aceptada es un préstamo por depositar (API)', `${aceptada.estado} · ${pr?.folio}`);
+  const yaCuenta = (await inv(`/rondas/${ronda.id}`)).data.avance;
+  dice(yaCuenta.juntado === 5000000 && yaCuenta.falta === 4000000, 'la ronda ya cuenta lo aceptado');
 
   // Ana lo ve, deposita y sube su comprobante.
   await ir(m, '#/', 'Hola, Ana');
@@ -287,39 +304,24 @@ try {
   dice(JSON.stringify(pdf.otros) === JSON.stringify(['UN PESO 00/100 M.N.', 'VEINTIÚN MIL PESOS 00/100 M.N.', 'UN MILLÓN DE PESOS 00/100 M.N.', 'TREINTA Y UN MIL CUATROCIENTOS QUINCE PESOS 92/100 M.N.', 'MIL QUINIENTOS PESOS 75/100 M.N.']), 'el monto en letra sale bien en los casos que suelen fallar', pdf.otros.join(' | '));
   dice((await desborde(m)) <= 1, 'el préstamo no se desborda a lo ancho en el celular', (await desborde(m)) + ' px');
 
-  // Quien dirige ve el comprobante y marca recibido.
-  await ir(p, `#/prestamo/${pr.id}`, '$50,000');
-  dice((await p.locator('.tarjeta.realce').innerText()).includes('ya subió su comprobante'), 'quien dirige ve que Ana ya subió su comprobante');
-  await p.getByRole('button', { name: 'Marcar recibido' }).click();
-  await p.locator('#panel form').waitFor();
-  await p.locator('#panel button.acc').click();
-  await p.locator('main h1 .et', { hasText: 'Activo' }).waitFor({ timeout: 20000 });
+  // Quien dirige marca recibido (dash101).
+  const recibido = await adm(`/prestamos/${pr.id}/recibido`, { method: 'POST', body: { cuenta_id: cuenta, fecha: hoy } });
   detalle = (await inv(`/prestamos/${pr.id}`)).data;
   const movs = (await api(`/orgs/${ORG}/movimientos?limite=100`, { app: 'dash101' })).data.filas;
-  dice(detalle.estado === 'activo' && detalle.fecha_inicio === hoy && movs.length === 1 && movs[0].tipo === 'ingreso' && movs[0].monto === 5000000 && movs[0].categoria === 'prestamo_recibido' && movs[0].cuenta_id === cuenta, 'marcar recibido arrancó el préstamo hoy y dejó el ingreso en dash101 (API)', `${detalle.estado} · ${movs[0]?.categoria}`);
+  dice(recibido.estado < 300 && detalle.estado === 'activo' && detalle.fecha_inicio === hoy && movs.length === 1 && movs[0].tipo === 'ingreso' && movs[0].monto === 5000000 && movs[0].categoria === 'prestamo_recibido' && movs[0].cuenta_id === cuenta, 'marcar recibido arrancó el préstamo hoy y dejó el ingreso en dash101 (API)', `${detalle.estado} · ${movs.length} movimiento(s)`);
   const interesReal = detalle.pagos[0].interes;
-  dice((await p.locator('#tabla tbody tr').count()) === 1 && (await p.locator('#tabla tbody tr td').nth(3).innerText()) === '$' + (interesReal / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 }), 'la tabla se rehízo con la fecha de verdad', `interés ${interesReal}`);
+  dice(detalle.pagos.length === 1 && detalle.pagos[0].capital === 5000000 && interesReal > 0, 'la tabla se rehízo con la fecha de verdad', `interés ${interesReal}`);
 
   // Editar la tabla: partirla en dos pagos, con motivo.
-  await p.locator('[data-editar-tabla]').click();
-  await p.locator('#editor-tabla form').waitFor();
-  await p.locator('#editor-tabla tbody tr').first().locator('[name=capital]').fill('20000');
-  dice((await p.locator('#editor-tabla [data-suma]').innerText()).includes('faltan $30,000.00'), 'el editor dice cuánto capital falta para cuadrar');
-  await p.locator('#editor-tabla [data-otra-fila]').click();
-  const segunda = p.locator('#editor-tabla tbody tr').nth(1);
   const despues = new Date(Date.parse(vence) + 14 * 86400000).toISOString().slice(0, 10);
-  await segunda.locator('[name=fecha]').fill(despues);
-  await segunda.locator('[name=capital]').fill('30000');
-  await segunda.locator('[name=interes]').fill('900');
-  dice((await p.locator('#editor-tabla [data-suma] .et').innerText()) === 'cuadra', 'con los dos pagos el capital cuadra');
-  await p.locator('#editor-tabla button.pri').click();
-  await p.locator('#editor-tabla .err', { hasText: 'por qué' }).waitFor({ timeout: 10000 });
-  dice(true, 'sin motivo no se guarda: lo dice la API');
-  await p.fill('#editor-tabla [name=motivo]', 'Se recorrió el cobro de la obra dos semanas');
-  await p.locator('#editor-tabla button.pri').click();
-  await p.locator('.cab .et', { hasText: 'Tabla editada a mano' }).waitFor({ timeout: 20000 });
+  const dosPagos = [{ fecha: detalle.pagos[0].fecha, capital: 2000000, interes: interesReal }, { fecha: despues, capital: 3000000, interes: 90000 }];
+  const noCuadra = await adm(`/prestamos/${pr.id}/tabla`, { method: 'PUT', body: { pagos: [dosPagos[0]], motivo: 'No cuadra' } });
+  dice(noCuadra.estado >= 400 && noCuadra.error === 'capital_no_cuadra', 'una tabla cuyo capital no suma lo que se debe no se guarda', `${noCuadra.estado} ${noCuadra.error}`);
+  const sinMotivo = await adm(`/prestamos/${pr.id}/tabla`, { method: 'PUT', body: { pagos: dosPagos, motivo: '' } });
+  dice(sinMotivo.estado >= 400, 'sin motivo no se guarda: lo dice la API', `${sinMotivo.estado} ${JSON.stringify(sinMotivo.detalle ?? '').slice(0, 80)}`);
+  const conMotivo = await adm(`/prestamos/${pr.id}/tabla`, { method: 'PUT', body: { pagos: dosPagos, motivo: 'Se recorrió el cobro de la obra dos semanas' } });
   detalle = (await inv(`/prestamos/${pr.id}`)).data;
-  dice(detalle.pagos.length === 2 && detalle.pagos[0].capital === 2000000 && detalle.pagos[1].capital === 3000000 && detalle.pagos[1].interes === 90000 && detalle.pagos[1].fecha === despues, 'la tabla nueva quedó en la base, en centavos (API)');
+  dice(conMotivo.estado < 300 && detalle.tabla_editada && detalle.pagos.length === 2 && detalle.pagos[0].capital === 2000000 && detalle.pagos[1].capital === 3000000 && detalle.pagos[1].interes === 90000 && detalle.pagos[1].fecha === despues, 'la tabla nueva quedó en la base, en centavos (API)');
 
   // Ana ve la tabla nueva, y por qué cambió.
   await ir(m, `#/prestamo/${pr.id}`, '$50,000');
@@ -330,10 +332,10 @@ try {
   // Se paga (desde dash101, que es donde sale el dinero) y aquí se refleja.
   const pago1 = await inv(`/pagos/${detalle.pagos[0].id}/pagar`, { method: 'POST', app: 'dash101', body: { cuenta_id: cuenta } });
   dice(pago1.estado === 200 && pago1.data.movimientos.length === 2, 'el primer pago, registrado desde dash101, deja capital e interés (API)', String(pago1.estado));
-  await ir(p, `#/prestamo/${pr.id}`, '$50,000');
-  dice((await p.locator('#tabla tbody tr').first().innerText()).includes('Pagado') && (await cifra(p, 'Capital que se debe')) === '$30,000', 'quien dirige lo ve pagado y el capital bajó a $30,000');
-  await p.locator('#tabla tbody tr').first().locator('[data-subir] input[type=file]').setInputFiles({ name: 'spei.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]) });
-  await p.locator('#tabla tbody tr').first().locator('a', { hasText: 'Comprobante' }).waitFor({ timeout: 20000 });
+  detalle = (await inv(`/prestamos/${pr.id}`)).data;
+  dice(detalle.pagos[0].estado === 'pagado' && detalle.resumen.capital_pendiente === 3000000, 'el pago quedó pagado y el capital bajó a $30,000 (API)');
+  const spei = await subir({ prestamo_id: pr.id, pago_id: detalle.pagos[0].id, clase: 'comprobante_pago' }, 'spei.png', 'image/png', Buffer.from([137, 80, 78, 71]));
+  dice(spei.estado < 300, 'quien dirige le cuelga su comprobante al pago (dash101)', String(spei.estado));
   await ir(m, `#/prestamo/${pr.id}`, '$50,000');
   const liga = await m.locator('main table tbody tr').first().locator('a', { hasText: 'Comprobante' }).getAttribute('href');
   const baja = await m.evaluate(async (u) => { const r = await fetch(u); return { estado: r.status, tipo: r.headers.get('content-type') }; }, liga);
@@ -347,16 +349,20 @@ try {
   dice((await m.locator('main').innerText()).includes('Liquidado'), 'su préstamo aparece liquidado');
   dice((await desborde(m)) <= 1, 'su cuenta no se desborda a lo ancho en el celular', (await desborde(m)) + ' px');
 
-  await ir(p, '#/', 'Inicio');
-  dice((await cifra(p, 'Capital que se debe')) === '$0', 'y a quien dirige el inicio le dice que ya no debe nada');
-  for (const [ruta, h1] of [['#/rondas', 'Rondas'], ['#/prestamos', 'Préstamos'], ['#/inversionistas', 'Inversionistas'], ['#/ajustes', 'Ajustes'], ['#/prestamo/nuevo', 'Préstamo directo']]) {
-    await ir(p, ruta, h1);
-    dice((await desborde(p)) <= 1, `abre ${h1} sin desbordar a lo ancho`, (await desborde(p)) + ' px');
+  dice((await adm('')).data.resumen.capital_vigente === 0, 'y a quien dirige la API le dice que ya no debe nada');
+  dice((await m.locator('#cuenta-menu [data-a-dash]').count()) === 0, 'a quien sólo presta no se le ofrece dash101');
+
+  // Las ligas viejas de quien dirige abren su pantalla en dash101.
+  for (const [vieja, enDash] of [[`#/prestamo/${pr.id}`, `/inversion/prestamos/${pr.id}`], ['#/inversionistas', '/inversion/inversionistas'], [`#/inversionista/${ana.id}`, `/inversion/inversionistas/${ana.id}`], ['#/ajustes', '/inversion/ajustes'], [`#/prestamo/nuevo?de=${ana.id}`, `/inversion/prestamos/nuevo?de=${ana.id}`], ['#/no-existe', '/inversion']]) {
+    await p.goto(`${BASE}/${vieja}`, { waitUntil: 'commit' });
+    const fue = await llegoA(p, DASH);
+    dice(fue === DASH + enDash, `«${vieja.replace(/01[0-9A-Z]{20,}/, '…')}» abre ${enDash.replace(/01[0-9A-Z]{20,}/, '…')} en dash101`, fue.replace(DASH, ''));
   }
   dir = (await inv('/inversionistas')).data.filas;
   dice(dir.find((f) => f.nombre === 'Ana Robles')?.es_prospecto === false, 'Ana dejó de ser prospecto (API)');
 
-  dice([...new Set(ajenos)].length === 0 && rotos.length === 0 && errores.length === 0, 'escritorio: sin peticiones ajenas, sin archivos faltantes, sin errores', [...new Set(ajenos), ...rotos, ...errores].join(' | ') || 'limpio');
+  const ajenosDeVerdad = [...new Set(ajenos)].filter((x) => x !== new URL(DASH).host);
+  dice(ajenosDeVerdad.length === 0 && rotos.length === 0 && errores.length === 0, 'quien dirige: sólo va a dash101; sin otras peticiones ajenas, sin archivos faltantes, sin errores', [...ajenosDeVerdad, ...rotos, ...errores].join(' | ') || 'limpio');
   dice([...new Set(ajenos2)].length === 0 && rotos2.length === 0 && errores2.length === 0, 'celular: sin peticiones ajenas, sin archivos faltantes, sin errores', [...new Set(ajenos2), ...rotos2, ...errores2].join(' | ') || 'limpio');
   await ctx.close();
   await ctx2.close();
@@ -365,6 +371,7 @@ try {
   console.log('FALLA se rompió a medias: ' + (e?.stack || e).toString().slice(0, 900));
 } finally {
   await nav.close();
+  dashFalso?.close();
   const b = await api(`/admin/orgs/${ORG}`, { method: 'DELETE', app: '' });
   console.log(`(empresa de prueba ${ORG} borrada: ${b.estado})`);
 }

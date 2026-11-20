@@ -6,28 +6,36 @@
 > el nombre con el que nacieron (como quell101 en `bitacora-obra`): los
 > nombres de infraestructura no se renombran (OPERAR.md §8).
 
-Rondas de inversión y préstamos a la empresa, de la suite 101. Quien dirige
-abre una ronda («necesito juntar tanto, para tal fecha, en estas
-condiciones»), avisa a su gente, aprueba ofertas y lleva cada préstamo con su
-tabla de pagos. Quien presta entra con su correo y ve su estado de cuenta:
-cuánto tiene invertido, qué día le pagan y los comprobantes de lo ya pagado.
+La cuenta de quien le presta a la empresa, de la suite 101. Quien presta
+entra con su correo y ve su estado de cuenta: las rondas abiertas, con cuánto
+le entra, cuánto tiene invertido, qué día le pagan y los comprobantes de lo
+ya pagado.
+
+> **20-nov-2026 · lo de quien dirige vive en dash101.** Mike: «hay que meter
+> patron101 a dash también. Igual que bill101»; y con botones, sobre esta
+> dirección: «Mandarlo a dash101». Las rondas, las ofertas, los préstamos, el
+> directorio y los ajustes se llevan en dash101, en el menú «Préstamos»
+> (`dash101/app/(app)/inversion`). Quien dirige y abre patron101 llega solo
+> allá, y cada liga vieja a su pantalla (`#/ronda/ID` →
+> `/inversion/rondas/ID`). Aquí ya no hay pantallas de administración.
 
 - Producción: https://patron.suite101.app (Worker `investor101`; patron101.taller101.com e investor101.taller101.com mandan ahí)
 - Staging: Worker `investor101-staging` (workers.dev)
 
-## Estado (8-oct-2026) — versión 0.2.1
+## Estado (20-nov-2026) — versión 0.3.0
 
 Lo pidió Mike el 8-oct-2026. Es una app de la suite: se entra con la cuenta
 de la suite 101 (`entrar.html`) y los datos viven en la base de la empresa,
 en `suite101-api` (contrato 0.82.0, `/orgs/:o/inversion/*`). Nada se guarda en
 el navegador, salvo qué empresa se abrió la última vez.
 
-**Dos papeles, y los decide la API:**
+**Dos papeles, y los decide la API; aquí sólo vive uno:**
 
-- **Quien dirige** (dueño o administración): rondas, ofertas, préstamos,
-  directorio de inversionistas y ajustes.
 - **Quien presta** (inversionista): sólo lo suyo. De una ronda ve las
   condiciones y el avance total; nunca quién más entró ni con cuánto.
+- **Quien dirige** (dueño o administración): en dash101 → Préstamos. Esta
+  app lo manda para allá (`/a-dash`, que sabe dónde vive dash101 en cada
+  ambiente por `URL_DASH`; no es una redirección abierta).
 
 **Decisiones de Mike (8-oct, con botones):**
 
@@ -61,13 +69,13 @@ Sin armazón ni compilación: archivos sueltos en `public/js/` que comparten
 | `nucleo.js` | la API, el dinero (centavos ↔ pesos), la tasa (puntos base ↔ %), fechas y rutas |
 | `piezas.js` | el formulario de condiciones con su tabla en vivo, la tabla de pagos, papeles, bitácora |
 | `pagare.js` | el pagaré en PDF (jsPDF, del propio origen) y el monto con letra |
-| `admin.js` | lo de quien dirige |
 | `inversionista.js` | lo de quien presta |
-| `arranque.js` | quién soy, en qué empresa, y qué vista toca |
+| `arranque.js` | quién soy, en qué empresa, y qué vista toca; a quien dirige, a dónde quedó su pantalla en dash101 (`rutaEnDash`) |
 
 `worker/index.js` es la puerta: sin sesión sólo entrega la pantalla de
 entrada; `/s101/*` va a la API por un service binding con `X-App:
-investor101`. Deja pasar a quien dirige y a quien trae `inversion` en `/yo`.
+investor101`. Deja pasar a quien trae `inversion` en `/yo` y a quien dirige
+(a éste la página lo manda a dash101 por `/a-dash`).
 
 ## Cómo se prueba
 
@@ -81,7 +89,8 @@ npx wrangler dev --env staging --local --port 8787
 # en otra, aquí:
 npm ci
 node pruebas/servidor.mjs 8797 http://127.0.0.1:8787 &
-node pruebas/pantalla.spec.mjs      # 67 comprobaciones: dos personas, escritorio y celular
+node pruebas/pantalla.spec.mjs      # 77 comprobaciones: quien presta en el celular; quien dirige, por la API y hacia dash101
+node pruebas/a-dash.spec.mjs        # sin red: a qué pantalla de dash101 va cada liga vieja
 ```
 
 Publicar: push a `main`. El flujo `Publicar investor101` levanta la API,
