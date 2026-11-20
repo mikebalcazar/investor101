@@ -51,15 +51,34 @@ for (const ruta of ['/index.html', '/js/inversionista.js', '/js/nucleo.js', '/ap
 
 /* 20-nov-2026 · quien dirige se manda a dash101 («Préstamos»). La puerta sabe
  * dónde vive dash101 en este ambiente; aquí se mide que mande ahí, a la
- * pantalla pedida, y que NO sea una redirección abierta. */
+ * pantalla pedida, y que NO sea una redirección abierta.
+ *
+ * CON PACIENCIA. La primera vez que esto se publicó (20-nov) la medición
+ * corrió dos segundos después del despliegue y tres de estas fallaron: la
+ * huella ya era la nueva (es un archivo) pero el borde todavía contestaba con
+ * el Worker anterior, que a `/a-dash` sin sesión lo mandaba a entrar. Un
+ * minuto después las mismas pasaban. Producción no se tocó. Así que cada una
+ * se vuelve a pedir hasta que conteste bien o se acabe el tiempo (lo mismo
+ * que se aprendió en bill101 #22). */
+async function hasta(pedir, buena, veces = 20) {
+  let r = null;
+  for (let i = 0; i < veces; i++) {
+    r = await pedir();
+    if (buena(r)) return r;
+    await pausa(3000);
+  }
+  return r;
+}
 {
-  const ida = await pide('/a-dash?ruta=' + encodeURIComponent('/inversion/rondas/01ABC'));
-  const a = ida.headers.get('location') || '';
-  dice(ida.status === 302 && /^https:\/\/dash[^/]*\/inversion\/rondas\/01ABC$/.test(a), '/a-dash manda a dash101, a la pantalla pedida', `${ida.status} → ${a}`);
+  const aDash = (ruta) => () => pide('/a-dash?ruta=' + encodeURIComponent(ruta));
+  const a = (r) => r.headers.get('location') || '';
+  const pedida = (r) => r.status === 302 && /^https:\/\/dash[^/]*\/inversion\/rondas\/01ABC$/.test(a(r));
+  const ida = await hasta(aDash('/inversion/rondas/01ABC'), pedida);
+  dice(pedida(ida), '/a-dash manda a dash101, a la pantalla pedida', `${ida.status} → ${a(ida)}`);
+  const alInicio = (r) => r.status === 302 && /^https:\/\/dash[^/]*\/inversion$/.test(a(r));
   for (const mala of ['https://malo.example/x', '//malo.example', '/inversion/../s101/yo', '/otra/cosa']) {
-    const r = await pide('/a-dash?ruta=' + encodeURIComponent(mala));
-    const b = r.headers.get('location') || '';
-    dice(r.status === 302 && /^https:\/\/dash[^/]*\/inversion$/.test(b), `/a-dash no es una redirección abierta: «${mala}» va al inicio de Préstamos`, `${r.status} → ${b}`);
+    const r = await hasta(aDash(mala), alInicio, 5);
+    dice(alInicio(r), `/a-dash no es una redirección abierta: «${mala}» va al inicio de Préstamos`, `${r.status} → ${a(r)}`);
   }
   const vieja = await pide('/js/admin.js');
   dice(vieja.status !== 200, 'las pantallas de quien dirige ya no se sirven aquí', String(vieja.status));
